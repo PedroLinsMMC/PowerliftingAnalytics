@@ -1,0 +1,300 @@
+---
+title: "Powerlifting Analytics"
+author: "Pedro Lins"
+date: "2022-09-27"
+output: 
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Open Powerlifting Data
+
+This page uses data from the OpenPowerlifting project, https://www.openpowerlifting.org. You may download a copy of the data at https://data.openpowerlifting.org.
+
+It consists of data from results of all athletes that competes around the world.
+
+```{r}
+# Load packages
+library(plyr)
+library(gapminder)
+library(tidyverse)
+library(knitr)
+```
+
+# Load your data
+
+```{r}
+# Upload data as a .csv file
+openpowerlifting = "openpowerlifting.csv" 
+df = read_csv(openpowerlifting)
+df(head)
+```
+
+# Understand your variables
+
+```{r}
+summary(df)
+dim(df)
+```
+# Exploratory Data Analysis (EDA)
+
+## How is the sport growing and why is it?
+Generally, the number of lifters competing each year is a good indicator of how much the sport is growing. We notice this number was growing fast since 2010, peaking at 2019 with 262,367 lifters competing worldwide, right before COVID-19’s lockdown.
+
+The main driver for this number was the female presence on the sport. Even tough the male participation was almost two times higher, female participation has been growing in a much faster pace than male since 2015.
+
+```{r}
+# I did it because date was in DD/MM/YYYY format, to make it easier for analyse, I made it just YYYY. 
+df$Year = c(format(df$Date, "%Y"))
+df$Year = as.numeric(df$Year)
+
+df_count= df %>%
+  count(Year)
+  maxLifters = max(df_count$n) #max lifters competing in a year
+  peakYear = df$Year[which.max(df_count$n)] # year with the most lifters competing
+
+
+# How many lifters competed per year grouped by sex
+p1 = ggplot(df, aes(x= Year, fill = Sex)) +
+  geom_area(stat="bin", alpha = 0.6, binwidth = 1) +
+  theme_classic() +
+  theme(legend.position="bottom") +
+  labs(title = "Lifters competing worldwide", subtitle = "How fast is the sport growing?", y = "Lifters", x = "Year") +
+  scale_x_continuous(n.breaks = 15) +
+  scale_y_continuous(n.breaks = 8)
+p1
+
+cat(" The year with most athletes competing was",peakYear, "with a total of", maxLifters, "lifters")
+```
+
+## What happened in 2019?
+The number of female lifters per country is an indicator that helps us answer where this growth is coming from. From the 2019 competitions, we notice that the USA is the main reason this presence is increasing.
+
+
+```{r}
+# Sliced top 10 since we have more than 193 countries
+df2 = df %>% 
+  filter(Year==2019) %>%
+  filter(Sex == "F") %>%
+  count(Country) %>%
+  arrange(desc(n)) %>%
+    slice(2:11) #number 1 is N/A so I ommited it
+
+p2 = ggplot(df2, aes(x = reorder(Country, -n), y = n)) + #order it in decreasing value
+  geom_bar(stat='identity', fill = "blue", alpha = 0.6) +
+  theme_classic() +
+  labs(title = "Female lifters by country", subtitles = "What are the countries with most female lifters competing in 2019?", y = "Lifters", x = "Country")
+p2
+```
+
+In fact, the female growth per country trend is clear happening on all the countries. USA, Russia and Ukraine started growing earlier them most countries and in 2013, the first two had almost the same amount of female lifters competing, 21,253 vs. 18,846 respectively.
+
+
+
+```{r}
+## Created a table with Year and Country and then made it a df so I can plot. Since the date became the index number, I made a new column for it.
+tab1 = table(df$Year, df$Country)
+dfnovo = as.data.frame.matrix(tab1) 
+dfnovo$Year <- c(1964:2022)
+
+p3 = ggplot(dfnovo , aes(x = Year)) +
+  geom_line(aes(y = Australia, color = "Australia")) +
+    geom_line(aes(y = USA, color = "USA")) +
+      geom_line(aes(y = Russia, color = "Russia")) +
+        geom_line(aes(y = Ukraine, color = "Ukraine")) +
+          geom_line(aes(y = Canada, color = "Canada"))+
+            geom_line(aes(y = England, color = "England"))+
+              geom_line(aes(y = Germany, color = "Germany"))+
+                geom_line(aes(y = Finland, color = "Ireland"))+
+                  geom_line(aes(y = Poland, color = "UK")) +
+                    geom_line(aes(y = France, color = "Frace")) +
+  theme_classic()+
+  labs(title = "Female growth per country", subtitles = "Is this growth particular to the USA?", y = "Lifters", x = "Year")
+p3
+```
+
+Not only the growth was driven by USA female lifters but also by Raw competitions. In fact, since 2013 the amount of female lifters competing raw events increased a lot.
+
+```{r}
+df4 = df %>%
+  filter (Country == "USA") %>%
+  filter (Sex == "F")
+
+p4 = ggplot(df4, aes(x = Year, fill = Equipment)) +
+  geom_area(stat="bin", alpha = 0.6, binwidth = 1) + 
+  theme_classic() +
+  labs(title = "Equipment usage", subtitle = "What is the preference for USA female lifters?", y = "Lifters", x = "Year") +
+  theme(legend.position="bottom") +
+  scale_x_continuous(n.breaks=15) +
+  scale_y_continuous(n.breaks=8)
+p4
+```
+
+To get a better picture, the average age of the USA female liters competing is decreasing since 2010. This indicator shows us that either more young lifters are joining the sport or older lifters are quitting it. Since the overall number of lifters is increasing, I believe it is the former.
+
+```{r}
+df7 = df %>%
+  filter(Sex == "F") %>%
+  filter(Country == "USA") %>%
+  filter(Event == "SBD") %>%
+  filter(Equipment == "Raw")
+
+p7 = ggplot(mu2, aes(x= Year, y = age.mean)) +
+  geom_area(stat = "identity", fill = "#69b3a2", alpha = 0.4)+
+  geom_line(stat = "identity", color = "#69b3a2", size =1)+
+  geom_point(stat = "identity", color = "#69b3a2", size =2)+
+  theme_classic() +
+  labs(title = "Female lifter age", subtitle = "How USA female age on average is changing?", y = "Age (average)", x = "Year") +
+  scale_x_continuous(n.breaks=15) +
+  scale_y_continuous(n.breaks=10)
+p7
+```
+
+However, the average age does not give us the full picture. As we know, the minimum age for competing is 14 and there is technically no maximum. The age distribution for 2019 competitions shows the curve is skewed to the left, with the most common age being 22.
+
+```{r}
+df6 = df %>%
+  filter(Year==2019) %>%
+  filter(Country == "USA") %>%
+  filter(Event == "SBD") %>%
+  filter(Equipment == "Raw")
+
+p6 = ggplot(df6, aes(x = Age, fill = Sex))+
+  geom_area(stat="bin", binwidth = 1, alpha = 0.6) + 
+  theme_classic() +
+  labs(title = "Age distribution", subtitle = "How was age distribution of USA lifters in 2019?", y = "Count", x = "Age") +
+  geom_vline(data = mu, aes(xintercept=22), linetype = "dashed")+
+  theme(legend.position="bottom")+ 
+  scale_x_continuous(n.breaks=15) 
+p6
+
+```
+
+## What can we expect for the next years?
+Until COVID-19, the sport was growing fast and steady, will this event impact next years or was it just hiccup?
+
+In order to evaluate our model, we compare predictions for the next ten years using data up to 2021 (which is the last year with complete data), and compare it to what is happening in right now.
+
+The prediction for 2022 gives us a maximum (Hi 95) of 133,605 lifters and, so far, already 134,624 lifters have competed. Thus, we believe COVID was just an outlier and it should not be taken in consideration while predicting next years.
+
+
+```{r}
+########################
+# Time Series Analysis #
+########################
+
+# Install and load packages
+# install.packages("forecast")
+# install.packages("fpp2")
+# install.packages("TTR")
+library(forecast)
+library(TTR)
+library(fpp2)
+
+# data series we are going to work on
+dat_ts <- ts(df_count[, 2], start = 1964, end = 2019, frequency = 1)
+
+# quick time plot
+autoplot(dat_ts) + ggtitle("Time plot: powerlifting lifters")
+
+# difference between years
+Dts = diff(dat_ts)
+autoplot(Dts) + ggtitle("Time plot: powerlifting lifters")
+
+# check for seasonality (it is not)
+ggseasonplot(Dts) + ggtitle("seasonal plot? change in powerlifting lifters years") 
+
+#-----------------------------------------------------------
+#####################
+# Forecast Modeling #
+#####################
+
+################
+# Naive Method #
+################
+
+fit <- naive(Dts) 
+print(summary(fit))
+checkresiduals(fit)
+# Residual sd: 30518.2906 // 7845.4128 for 2019 only
+
+
+##############
+# ETS Method #
+##############
+
+fit_ets = ets(Dts) 
+print(summary(fit_ets))
+checkresiduals(fit_ets)
+# Residual 20897.35 // 7319.057 for 2019 only
+
+
+#########
+# ARIMA #
+#########
+
+fit_arima = auto.arima(dat_ts, d=1,stepwise = FALSE, approximation = FALSE, trace = TRUE) 
+print(summary(fit_arima))
+checkresiduals(fit_arima)
+# Residual sd: 17934.97 // 7252.799 for 2019 only
+
+############
+# Plotting #
+############
+
+# Ploting with ARIMA since it has the lowest standard deviation
+fcst = forecast(fit_arima, h = 10)
+autoplot(fcst, include = 100)
+print(summary(fcst))
+#-----------------------------------------------------------
+```
+
+Now, if we were to predict next ten years using data up to 2019, things seems too optimistic. Back in 2019, I would say it is totally reasonable to find this numbers, but comparing those numbers to nowadays, this seems impossible. But, as the old saying goes:
+
+It is easy to predict the past.
+
+The chart shows that growth keeps positive but also shows that it is slowing down. The lowest forecast (Lo 95) for 2022 predicts 270,160, this number is almost twice the number of lifters how already competed this year and there is only a quarter left, maybe we miss it by 25% (I’ve seem worst predictions).
+
+
+
+```{r}
+# Compare 2019 forecast with how is going on the same plot. What about ealier months?
+dat_ts2 <- ts(df_count[, 2], start = 1964, end = 2021, frequency = 1)
+
+#########
+# ARIMA #
+#########
+
+fit_arima2 = auto.arima(dat_ts2, d=1,stepwise = FALSE, approximation = FALSE, trace = TRUE) 
+print(summary(fit_arima2))
+checkresiduals(fit_arima2)
+# Residuals sd: 17934.97 // 7252.799 for 2019 only
+
+############
+# Plotting #
+############
+
+# Ploting with ARIMA since it has the lowest standard deviation
+fcst2 = forecast(fit_arima2, h = 10)
+autoplot(fcst2, include = 100)
+print(summary(fcst2))
+```
+
+Conclusion
+The sport is growing fast, numbers don’t lie. By digging into it, we can find a few answers to how and why this is happening:
+
+Female athletes presence is driving it even faster.
+This is a worldwide trend but USA growth was much faster.
+Raw events is helping the sport grow, probably because it has a lower entry barrier.
+The average age of female lifters is decreasing and the distribution shows it is skewed.
+By analyzing data, we notice that COVID-19 impact was an outlier and we should expect it not to reduce growth speed as much on the short-term.
+
+On the long-term, based on the analysis, my recommendation for federations, coaches and influencers worldwide that want to help the sport to grow, is to engage female lifters to join the sport. Specifically, the main opportunity is to promote raw powerlifting events.
+
+Furthermore, since data showed that the majority of them age around 23, social media like Instagram, Tik Tok, seems to be a good way to communicate with this public.
+

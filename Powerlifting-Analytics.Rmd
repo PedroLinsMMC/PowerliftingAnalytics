@@ -1,0 +1,245 @@
+---
+title: "Powerlifting Analytics"
+author: "Pedro Lins"
+date: "2022-09-27"
+output: 
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# install.packages("gapminder")
+# install.packages("knirt")
+# install.packages("tidyverse")
+library(gapminder)
+library(tidyverse)
+library(knitr)
+```
+
+# Data extraction
+
+```{r}
+
+## The file needs to be updated. Should think of a way to automate it with github
+openpowerlifting = "openpowerlifting-2022-09-27-9df05397.csv" 
+
+## The file must be on the same folder as the .rmd. 
+df = read_csv(openpowerlifting)
+```
+#Transforming data. 
+```{r}
+# I did it because date was in DD/MM/YYYY format, to make it easier for analyse, I made it just YYYY. 
+df$Year = c(format(df$Date, "%Y"))
+df$Year = as.numeric(df$Year)
+```
+
+```{r}
+# Year with the most athletes competing
+## I used this variable to highlight it when plotting.
+df_count= df %>%
+  count(Year)
+  maxLifters = max(df_count$n) #max lifters competing in a year
+  peakYear = df$Year[which.max(df_count$n)] # year with the most lifters competing
+
+
+# How many lifters competed per year grouped by sex
+p1 = ggplot(df, aes(x= Year, fill = Sex)) +
+  geom_area(stat="bin", alpha = 0.6, binwidth = 1) +
+  theme_classic() +
+  theme(legend.position="bottom") +
+  labs(title = "Lifters competing worldwide", subtitle = "How fast is the sport growing?", y = "Lifters", x = "Year") +
+  scale_x_continuous(n.breaks = 15) +
+  scale_y_continuous(n.breaks = 8)
+p1
+```
+
+
+
+
+```{r}
+df2 = df %>% 
+  filter(Year==2019) %>%
+  filter(Sex == "F") %>%
+  count(Country) %>%
+  arrange(desc(n)) %>%
+    slice(2:11)
+
+p2 = ggplot(df2, aes(x = reorder(Country, -n), y = n)) +
+  geom_bar(stat='identity', fill = "blue", alpha = 0.6) +
+  theme_classic() +
+  labs(title = "Female lifters by country", subtitles = "What are the countries with most female lifters competing in 2019?", y = "Lifters", x = "Country")
+p2
+
+
+```
+
+
+
+```{r}
+## Created a table with Year and Country and then made it a df so I can plot. Since the date became the index number, I made a new column for it.
+tab1 = table(df$Year, df$Country)
+dfnovo = as.data.frame.matrix(tab1) 
+dfnovo$Year <- c(1964:2022)
+
+p3 = ggplot(dfnovo , aes(x = Year)) +
+  geom_line(aes(y = Australia, color = "Australia")) +
+    geom_line(aes(y = USA, color = "USA")) +
+      geom_line(aes(y = Russia, color = "Russia")) +
+        geom_line(aes(y = Ukraine, color = "Ukraine")) +
+          geom_line(aes(y = Canada, color = "Canada"))+
+            geom_line(aes(y = England, color = "England"))+
+              geom_line(aes(y = Germany, color = "Germany"))+
+                geom_line(aes(y = Finland, color = "Ireland"))+
+                  geom_line(aes(y = Poland, color = "UK")) +
+                    geom_line(aes(y = France, color = "Frace")) +
+  theme_classic()+
+  labs(title = "Female growth per country", subtitles = "Is this growth particular to the USA?", y = "Lifters", x = "Year")
+p3
+```
+
+#Average age per year change
+## Trend
+```{r}
+df4 = df %>%
+  filter (Country == "USA") %>%
+  filter (Sex == "F")
+
+p4 = ggplot(df4, aes(x = Year, fill = Equipment)) +
+  geom_area(stat="bin", alpha = 0.6, binwidth = 1) + 
+  theme_classic() +
+  labs(title = "Equipment usage", subtitle = "What is the preference for USA female lifters?", y = "Lifters", x = "Year") +
+  theme(legend.position="bottom") +
+  scale_x_continuous(n.breaks=15) +
+  scale_y_continuous(n.breaks=8)
+p4
+```
+
+```{r}
+library(plyr)
+df7 = df %>%
+  filter(Sex == "F") %>%
+  filter(Country == "USA") %>%
+  filter(Event == "SBD") %>%
+  filter(Equipment == "Raw")
+
+mu2 <- ddply(df7, "Year", summarise, age.mean=mean(Age, na.rm=T))
+head(mu2)
+
+
+p7 = ggplot(mu2, aes(x= Year, y = age.mean)) +
+  geom_area(stat = "identity", fill = "#69b3a2", alpha = 0.4)+
+  geom_line(stat = "identity", color = "#69b3a2", size =1)+
+  geom_point(stat = "identity", color = "#69b3a2", size =2)+
+  theme_classic() +
+  labs(title = "Female lifter age", subtitle = "How USA female age on average is changing?", y = "Age (average)", x = "Year") +
+  scale_x_continuous(n.breaks=15) +
+  scale_y_continuous(n.breaks=10)
+p7
+```
+
+```{r}
+df6 = df %>%
+  filter(Year==2019) %>%
+  filter(Country == "USA")
+  
+
+library(plyr)
+mu <- ddply(df, "Sex", summarise, age.mean=mean(Age, na.rm=T))
+head(mu)
+
+
+p6 = ggplot(df6, aes(x = Age, fill = Sex))+
+  geom_area(stat="bin", binwidth = 1, alpha = 0.6) + 
+  theme_classic() +
+  labs(title = "Age distribution", subtitle = "How was age distribution of USA lifters in 2019?", y = "Count", x = "Age") +
+  geom_vline(data = mu, aes(xintercept=22), linetype = "dashed")+
+  #geom_vline(data = mu, aes(xintercept=age.mean, color = Sex), linetype = "dashed")+
+  theme(legend.position="bottom")+ 
+  #annotate("text", x = 23, y = 3500, label = "Mx = 29, F = 30, M = 31")+
+  scale_x_continuous(n.breaks=15) 
+p6
+
+```
+
+
+
+```{r}
+df8 = df %>%
+   filter(Year == "2019") %>%
+  filter(Country =="USA"|Country == "Russia"|Country == "Canada"|Country == "England"|Country == "Ukraine"|Country == "Australia"|Country == "Germany"|Country == "Ireland"|Country == "UK"|Country == "France")
+
+p8 = ggplot(df8, aes(x=Country, y=Age))+
+  geom_boxplot()+
+  labs(title = "Age distribution", subtitle = "How is age distribution on each contry?", y = "Count", x = "Age") +
+  theme_minimal()
+p8
+```
+
+
+```{r}
+# install.packages("forecast")
+# install.packages("fpp2")
+# install.packages("TTR")
+library(forecast)
+library(TTR)
+library(fpp2)
+
+# Compare 2019 forecast with how is going on the same plot. What about ealier months?
+dat_ts <- ts(df_count[, 2], start = 1964, end = 2019, frequency = 1)
+
+#time plot
+autoplot(dat_ts) + ggtitle("Time plot: powerlifting lifters")
+
+# diferenca entre anos
+Dts = diff(dat_ts)
+autoplot(Dts) + ggtitle("Time plot: powerlifting lifters")
+
+# series trend-stationary, use to investigate seasonality
+# Error in ggseasonplot(Dts) : Data are not seasonal
+# ggseasonplot(Dts) + ggtitle("seasonal plot? change in powerlifting lifters years") 
+
+# Naive method of the difference, since the trend is upward and anually de difference is similar
+fit <- naive(Dts) # Residual sd: 30518.2906 // 7845.4128 for 2019 only
+print(summary(fit))
+checkresiduals(fit)
+
+# Fit ETS method
+fit_ets = ets(Dts) # Residual 20897.35 // 7319.057 for 2019 only
+print(summary(fit_ets))
+checkresiduals(fit_ets)
+
+# ARIMA
+fit_arima = auto.arima(dat_ts, d=1,stepwise = FALSE, approximation = FALSE, trace = TRUE) #17934.97 // 7252.799 for 2019 only
+# fit_arima = auto.arima(Dts)
+print(summary(fit_arima))
+checkresiduals(fit_arima)
+
+# Forecast with ARIMA
+fcst = forecast(fit_arima, h = 10)
+autoplot(fcst, include = 100)
+print(summary(fcst))
+
+########################
+}
+```
+```{r}
+# Compare 2019 forecast with how is going on the same plot. What about ealier months?
+dat_ts2 <- ts(df_count[, 2], start = 1964, end = 2021, frequency = 1)
+
+# ARIMA
+fit_arima2 = auto.arima(dat_ts2, d=1,stepwise = FALSE, approximation = FALSE, trace = TRUE) #17934.97 // 7252.799 for 2019 only
+# fit_arima = auto.arima(Dts)
+print(summary(fit_arima2))
+checkresiduals(fit_arima2)
+
+# Forecast with ARIMA
+fcst2 = forecast(fit_arima2, h = 10)
+autoplot(fcst2, include = 100)
+print(summary(fcst2))
+```
+
