@@ -285,7 +285,7 @@ autoplot(fcst2, include = 100)
 print(summary(fcst2))
 ```
 
-Conclusion
+## Conclusion
 The sport is growing fast, numbers don’t lie. By digging into it, we can find a few answers to how and why this is happening:
 
 Female athletes presence is driving it even faster.
