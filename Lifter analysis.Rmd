@@ -1,0 +1,226 @@
+---
+title: "Part 2"
+author: "Pedro Lins"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load packages
+library(gapminder)
+library(tidyverse)
+library(ggplot2)
+```
+
+# Load your data
+
+```{r}
+# Upload data as a .csv file
+ds = "openpowerlifting.csv" 
+df = read_csv(ds)
+head(df)
+```
+
+# Exploratory Data Analysis
+# Lifters Analysis
+The goal here is to create a DSaaS (Data Science as a Service) that people can choose a lifter from the database and see his statistics. 
+
+initially, lets evaluate the general formula for attempts index
+if a lifter misses a lift, it shows as a negative value
+if a lifter performed it, positive
+so we want to count how many positives a lifter had and divide it by all attempts he did
+this gives the probability of a lifter performing a good lift
+this can be drilled down to each lift (squat, bench press, deadlift)
+and by time (is it changing through time?)
+
+
+```{r}
+##################
+# Attempts Index #
+##################
+
+#########
+# Squat #
+#########
+
+Name1 = "Pedro Lins"
+
+# First squat
+sq1 = df %>%
+  filter(Name == Name1) %>%
+  count(Squat1Kg > 0)
+colnames(sq1) = c("Squat1", "sq1")
+
+  if(sq1[1,1] == TRUE){
+    sq1idx = data.frame(c(1))
+  } else {sq1idx = sq1[2,2] / (sq1[1,2] + sq1[2,2])
+    }
+colnames(sq1idx) = c("sq1idx")
+
+
+# Second Squat
+sq2 = df %>%
+  filter(Name == Name1) %>%
+  count(Squat2Kg > 0)
+colnames(sq2) = c("Squat2", "sq2")
+
+if(sq2[1,1] == TRUE){
+    sq2idx = data.frame(c(1))
+  } else {sq2idx = sq2[2,2] / (sq2[1,2] + sq2[2,2])
+    }
+colnames(sq2idx) = c("sq2idx")
+
+
+# Thrid Squat
+sq3 = df %>%
+  filter(Name == Name1) %>%
+  count(Squat3Kg > 0)
+colnames(sq3) = c("Squat3", "sq3")
+
+if(sq3[1,1] == TRUE){
+    sq3idx = data.frame(c(1))
+  } else {sq3idx = sq3[2,2] / (sq3[1,2] + sq3[2,2])
+    }
+colnames(sq3idx) = c("sq3idx")
+
+# Fourth Squat will not get into the analysis since it is technically an outlier
+
+sq = (sq1idx + sq2idx + sq3idx)/3
+colnames(sq) = c("sq")
+sq
+```
+
+```{r}
+###############
+# Bench Press #
+###############
+
+# First Bench Press
+bp1 = df %>%
+  filter(Name == Name1) %>%
+  count(Bench1Kg > 0)
+colnames(bp1) = c("Bench1", "bp1")
+
+  if(bp1[1,1] == TRUE){
+    bp1idx = data.frame(c(1))
+  } else {bp1idx = bp1[2,2] / (bp1[1,2] + bp1[2,2])
+    }
+colnames(bp1idx) = c("bp1idx")
+bp1idx
+
+# Second Bench Press
+bp2 = df %>%
+  filter(Name == Name1) %>%
+  count(Bench2Kg > 0)
+colnames(bp2) = c("Bench2", "bp2")
+
+  if(bp2[1,1] == TRUE){
+    bp2idx = data.frame(c(1))
+  } else {bp2idx = bp2[2,2] / (bp2[1,2] + bp2[2,2])
+    }
+colnames(bp2idx) = c("bp2idx")
+bp2idx
+
+# Thrid Bench Press
+bp3 = df %>%
+  filter(Name == Name1) %>%
+  count(Bench3Kg > 0)
+colnames(bp3) = c("Bench3", "bp3")
+
+  if(bp3[1,1] == TRUE){
+    bp3idx = data.frame(c(1))
+  } else {bp3idx = bp3[2,2] / (bp3[1,2] + bp3[2,2])
+    }
+
+colnames(bp3idx) = c("bp3idx")
+
+
+# Fourth Bench press will not get into the analysis since it is technically an outlier
+
+bp = (bp1idx + bp2idx + bp3idx)/3
+colnames(bp) = c("bp")
+bp
+```
+
+```{r}
+############
+# Deadlift #
+############
+
+# First Deadlift
+dl1 = df %>%
+  filter(Name == Name1) %>%
+  count(Deadlift1Kg > 0)
+colnames(dl1) = c("Deadlift1", "dl1")
+
+  if(dl1[1,1] == TRUE){
+    dl1idx = data.frame(c(1))
+  } else {dl1idx = dl1[2,2] / (dl1[1,2] + dl1[2,2])
+    }
+colnames(dl1idx) = c("dl1idx")
+dl1idx
+
+# Second Deadlift
+dl2 = df %>%
+  filter(Name == Name1) %>%
+  count(Deadlift2Kg > 0)
+colnames(dl2) = c("Deadlift2", "dl2")
+
+  if(dl2[1,1] == TRUE){
+    dl2idx = data.frame(c(1))
+  } else {dl2idx = dl2[2,2] / (dl2[1,2] + dl2[2,2])
+    }
+colnames(dl2idx) = c("dl2idx")
+dl2idx
+
+# Thrid Deadlift
+dl3 = df %>%
+  filter(Name == Name1) %>%
+  count(Deadlift3Kg > 0)
+colnames(dl3) = c("Deadlift3", "dl3")
+
+  if(dl3[1,1] == TRUE){
+    dl3idx = data.frame(c(1))
+  } else {dl3idx = dl3[2,2] / (dl3[1,2] + dl3[2,2])
+    }
+colnames(dl3idx) = c("dl3idx")
+dl3idx
+
+# Fourth Bench press will not get into the analysis since it is technically an outlier
+
+dl = (dl1idx + dl2idx + dl3idx)/3
+colnames(dl) = c("dl")
+dl
+```
+
+```{r}
+#################
+# Overall Index #
+#################
+
+#index = (sq + bp + dl)/3
+sq_index = data.frame(sq1idx, sq2idx, sq3idx, sq)
+sq_trans <- as.data.frame(t(sq_index))
+sq_trans
+bp_index = data.frame(bp1idx, bp2idx, bp3idx, bp)
+bp_trans<- as.data.frame(t(bp_index))
+bp_trans
+dl_index = data.frame(dl1idx, dl2idx, dl3idx, dl)
+dl_trans<- as.data.frame(t(dl_index))
+dl_trans
+
+attempts = c(1,2,3,"overall")
+
+newdf = data.frame(attempts, sq_trans, bp_trans, dl_trans)
+colnames(newdf) = c("Attempts", "Squat", "Bench", "Deadlift")
+print(newdf)
+
+ggplot(newdf, aes(y = Squat, x = attempts))+
+         geom_col()
+
+```
+
