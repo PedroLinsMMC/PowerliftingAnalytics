@@ -202,7 +202,7 @@ dl
 # Overall Index #
 #################
 
-#index = (sq + bp + dl)/3
+index = (sq + bp + dl)/3
 sq_index = data.frame(sq1idx, sq2idx, sq3idx, sq)
 sq_trans <- as.data.frame(t(sq_index))
 sq_trans
@@ -213,14 +213,31 @@ dl_index = data.frame(dl1idx, dl2idx, dl3idx, dl)
 dl_trans<- as.data.frame(t(dl_index))
 dl_trans
 
-attempts = c(1,2,3,"overall")
 
-newdf = data.frame(attempts, sq_trans, bp_trans, dl_trans)
-colnames(newdf) = c("Attempts", "Squat", "Bench", "Deadlift")
-print(newdf)
+Attempts = c(1,2,3,"Average")
+lifteridx = c(sq, bp, dl, index)
 
-ggplot(newdf, aes(y = Squat, x = attempts))+
+df_lifter = data.frame(Attempts, sq_trans, bp_trans, dl_trans, lifteridx)
+colnames(df_lifter) = c("Attempts", "Squat", "Bench", "Deadlift", "Index")
+print(df_lifter)
+
+p1 = ggplot(df_lifter, aes(y = Squat, x = Attempts))+
          geom_col()
+p2 = ggplot(df_lifter, aes(y = Bench, x = Attempts))+
+         geom_col()
+p3 = ggplot(df_lifter, aes(y = Deadlift, x = Attempts))+
+         geom_col()
+p4 = ggplot(df_lifter, aes(y = Index, x = Attempts))+
+         geom_col()
+
+```
+
+Now I want to understand how much (on average?) the lifter increases weight between attempts.
+
+then, how much did he increased when re failed
+
+
+```{r}
 
 ```
 
