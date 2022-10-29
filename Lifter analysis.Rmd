@@ -27,7 +27,7 @@ head(df)
 
 # Exploratory Data Analysis
 # Lifters Analysis
-The goal here is to create a DSaaS (Data Science as a Service) that people can choose a lifter from the database and see his statistics. 
+The goal here is to create an app that people can query a lifter from the database and see his performance statistics. 
 
 initially, lets evaluate the general formula for attempts index
 if a lifter misses a lift, it shows as a negative value
@@ -190,7 +190,7 @@ colnames(dl3) = c("Deadlift3", "dl3")
 colnames(dl3idx) = c("dl3idx")
 dl3idx
 
-# Fourth Bench press will not get into the analysis since it is technically an outlier
+# Fourth Deadlift will not get into the analysis since it is technically an outlier
 
 dl = (dl1idx + dl2idx + dl3idx)/3
 colnames(dl) = c("dl")
@@ -232,144 +232,213 @@ p4 = ggplot(df_lifter, aes(y = Index, x = Attempts))+
 
 ```
 
-Now I want to understand how much (on average?) the lifter increases weight between attempts.
+# Jump analysis
+During the competition, lifters can only increase the weight for the next attempt. Because of that, lifters manage risk by starting with a weight that is more probable to lift and increase for the next according to previous result. Here, we analyse how the increase can impact competition performance. 
 
-then, how much did he increased when re failed
+How much is too much of a jump so that the lifter might miss the attempt? 
+How much is a safe weight increase for next attempt?
 
-but first, lets see how much he jumps on each lift, on average
+# Squat
 
 ```{r}
 ###############
 # Squat Jumps #
 ###############
 
-sq11 = df %>%
-  filter(Name == Name1)
+##############################
+# Good attempts % comparison #
+##############################
 
-sqjump1 = abs(sq11[,12]) - abs(sq11[,11])
-  sqjump1
-  
-sqjump2 = abs(sq11[,13]) - abs(sq11[,12])
-  sqjump2
-  
-sqjumpdf = data.frame(sqjump1, sqjump2)
-colnames(sqjumpdf) = c("Jump1", "Jump2")
-sqjumpdf
+# When your second lift is GOOD, how much percentage is it from the first?
+sq2good = df %>%
+  filter(Name == Name1) %>%
+  filter(Squat2Kg > 0)
 
-mean(sqjumpdf$Jump1)
-mean(sqjumpdf$Jump2)
+sq2j1good = 100 * ((abs(sq2good[,12]) / abs(sq2good[,11]))-1)
+mean(sq2j1good$Squat2Kg)
 
+# When your third lift is GOOD, how much percentage is it from the second?
+sq3good = df %>%
+  filter(Name == Name1) %>%
+  filter(Squat3Kg > 0)
+
+sq3j2good = 100 * ((abs(sq3good[,13]) / abs(sq3good[,12]))-1)
+mean(sq3j2good$Squat3Kg)
+```
+
+```{r}
 #############################
-# Second squat missed jumps #
+# Bad attempts % comparison #
 #############################
 
-sq12 = df %>%
+# When your second lift is BAD, how much percentage is it from the first?
+sq2bad = df %>%
   filter(Name == Name1) %>%
   filter(Squat2Kg < 0)
-  sq12
-
-sqjump12 = abs(sq12[,12]) - abs(sq12[,11])
-sqjump12
   
-sqjump22 = abs(sq12[,13]) - abs(sq12[,12])
-sqjump22
-  
-sqjumpdf2 = data.frame(sqjump12, sqjump22)
-colnames(sqjumpdf2) = c("Jump12", "Jump22")
-sqjumpdf2
+sq2j2bad = 100 * ((abs(sq2bad[,12]) / abs(sq2bad[,11]))-1)
+mean(sq2j2bad$Squat2Kg)
 
-mean(sqjumpdf2$Jump12)
-
-  
-
-############################
-# Third squat missed jumps #
-############################
-
-sq13 = df %>%
+# When your third lift is BAD, how much percentage is it from the second?
+sq3bad = df %>%
   filter(Name == Name1) %>%
   filter(Squat3Kg < 0)
-  sq13
 
-sqjump13 = abs(sq13[,12]) - abs(sq13[,11])
-sqjump13
-  
-sqjump23 = abs(sq13[,13]) - abs(sq13[,12])
-sqjump23
-  
-sqjumpdf3 = data.frame(sqjump13, sqjump23)
-colnames(sqjumpdf3) = c("Jump13", "Jump23")
-sqjumpdf3
+sq3j2bad = 100 * ((abs(sq3bad[,13]) / abs(sq3bad[,12]))-1)
+mean(sq3j2bad$Squat3Kg)
+```
 
-
-mean(sqjumpdf3$Jump23)
-
-
-##########################
-# Attempts % comparison #
-##########################
-
-# When your second is a good lift, how much percentage is it from the first?
-sq14 = df %>%
-  filter(Name == Name1) %>%
-  filter(Squat2Kg < 0)
-  sq14
-
-sqjump14 = 100 * (1 - (abs(sq14[,12]) / abs(sq14[,11])))
-sqjump14
-  
-sqjump24 = 100 * (1 - (abs(sq14[,13]) / abs(sq14[,12])))
-sqjump24
-  
-sqjumpdf4 = data.frame(sqjump14, sqjump24)
-colnames(sqjumpdf4) = c("Jump14", "Jump24")
-sqjumpdf4
-
-mean(sqjumpdf4$Jump14)
-
-# When your third is a good lift, how much percentage is it from the second?
-sq15 = df %>%
-  filter(Name == Name1) %>%
-  filter(Squat3Kg < 0)
-  sq15
-
-sqjump15 = 100 * (1 - (abs(sq15[,12]) / abs(sq15[,11])))
-sqjump15
-  
-sqjump25 = 100 * (1 - (abs(sq15[,13]) / abs(sq15[,12])))
-sqjump25
-  
-sqjumpdf5 = data.frame(sqjump15, sqjump25)
-colnames(sqjumpdf5) = c("Jump15", "Jump25")
-sqjumpdf5
-
-mean(sqjumpdf5$Jump25)
-
-
+```{r}
 ###########################
 # Attempts % when 3 for 3 #
 ###########################
 
-sq16 = df %>%
+sqgood = df %>%
   filter(Name == Name1) %>%
   filter(Squat1Kg > 0) %>%
   filter(Squat2Kg > 0) %>%
   filter(Squat3Kg > 0) 
-  sq16
 
-sqjump16 = 100 * (1 - (abs(sq16[,12]) / abs(sq16[,11])))
-sqjump16
-  
-sqjump26 = 100 * (1 - (abs(sq16[,13]) / abs(sq16[,12])))
-sqjump26
-  
-sqjumpdf6 = data.frame(sqjump16, sqjump26)
-colnames(sqjumpdf6) = c("Jump16", "Jump26")
-sqjumpdf6
+sqjump1good = 100 * ((abs(sqgood[,12]) / abs(sqgood[,11]))-1)
+sqjump2good = 100 * ((abs(sqgood[,13]) / abs(sqgood[,12]))-1)
 
-mean(sqjumpdf6$Jump16)
-mean(sqjumpdf6$Jump26)
-mean(sqjumpdf6$Jump16) + mean(sqjumpdf6$Jump26)
-  
+mean(sqjump1good$Squat2Kg)
+mean(sqjump2good$Squat3Kg)
+mean(sqjump1good$Squat2Kg) + mean(sqjump2good$Squat3Kg)
 ```
 
+# Bench Press
+```{r}
+#####################
+# Bench Press Jumps #
+#####################
+
+##############################
+# Good attempts % comparison #
+##############################
+
+# When your second lift is GOOD, how much percentage is it from the first?
+bp2good = df %>%
+  filter(Name == Name1) %>%
+  filter(Bench2Kg > 0)
+
+bp2j1good = 100 * ((abs(bp2good[,17]) / abs(bp2good[,16]))-1)
+mean(bp2j1good$Bench2Kg)
+
+# When your third lift is GOOD, how much percentage is it from the second?
+bp3good = df %>%
+  filter(Name == Name1) %>%
+  filter(Bench3Kg > 0)
+
+bp3j2good = 100 * ((abs(bp3good[,18]) / abs(bp3good[,17]))-1)
+mean(bp3j2good$Bench3Kg)
+```
+
+```{r}
+#############################
+# Bad attempts % comparison #
+#############################
+
+# When your second lift is BAD, how much percentage is it from the first?
+bp2bad = df %>%
+  filter(Name == Name1) %>%
+  filter(Bench2Kg < 0)
+  
+bp2j2bad = 100 * ((abs(bp2bad[,17]) / abs(bp2bad[,16]))-1)
+mean(bp2j2bad$Bench2Kg)
+
+# When your third lift is BAD, how much percentage is it from the second?
+bp3bad = df %>%
+  filter(Name == Name1) %>%
+  filter(Bench3Kg < 0)
+
+bp3j2bad = 100 * ((abs(bp3bad[,18]) / abs(bp3bad[,17]))-1)
+mean(bp3j2bad$Bench3Kg)
+```
+
+```{r}
+###########################
+# Attempts % when 3 for 3 #
+###########################
+
+bpgood = df %>%
+  filter(Name == Name1) %>%
+  filter(Bench1Kg > 0) %>%
+  filter(Bench2Kg > 0) %>%
+  filter(Bench3Kg > 0) 
+
+bpjump1good = 100 * ((abs(bpgood[,17]) / abs(bpgood[,16]))-1)
+bpjump2good = 100 * ((abs(bpgood[,18]) / abs(bpgood[,17]))-1)
+
+mean(bpjump1good$Bench2Kg)
+mean(bpjump2good$Bench3Kg)
+mean(bpjump1good$Bench2Kg) + mean(bpjump2good$Bench3Kg)
+```
+
+# Deadlift
+```{r}
+##################
+# Deadlift Jumps #
+##################
+
+##############################
+# Good attempts % comparison #
+##############################
+
+# When your second lift is GOOD, how much percentage is it from the first?
+dl2good = df %>%
+  filter(Name == Name1) %>%
+  filter(Deadlift2Kg > 0)
+
+dl2j1good = 100 * ((abs(dl2good[,22]) / abs(dl2good[,21]))-1)
+mean(dl2j1good$Deadlift2Kg)
+
+# When your third lift is GOOD, how much percentage is it from the second?
+dl3good = df %>%
+  filter(Name == Name1) %>%
+  filter(Deadlift3Kg > 0)
+
+dl3j2good = 100 * ((abs(dl3good[,23]) / abs(dl3good[,22]))-1)
+mean(dl3j2good$Deadlift3Kg)
+```
+
+```{r}
+#############################
+# Bad attempts % comparison #
+#############################
+
+# When your second lift is BAD, how much percentage is it from the first?
+dl2bad = df %>%
+  filter(Name == Name1) %>%
+  filter(Deadlift2Kg < 0)
+  
+dl2j2bad = 100 * ((abs(dl2bad[,22]) / abs(dl2bad[,21]))-1)
+mean(dl2j2bad$Deadlift2Kg)
+
+# When your third lift is BAD, how much percentage is it from the second?
+dl3bad = df %>%
+  filter(Name == Name1) %>%
+  filter(Deadlift3Kg < 0)
+
+dl3j2bad = 100 * ((abs(dl3bad[,23]) / abs(dl3bad[,22]))-1)
+mean(dl3j2bad$Deadlift3Kg)
+```
+
+```{r}
+###########################
+# Attempts % when 3 for 3 #
+###########################
+
+dlgood = df %>%
+  filter(Name == Name1) %>%
+  filter(Deadlift1Kg > 0) %>%
+  filter(Deadlift2Kg > 0) %>%
+  filter(Deadlift3Kg > 0) 
+
+dljump1good = 100 * ((abs(dlgood[,22]) / abs(dlgood[,21]))-1)
+dljump2good = 100 * ((abs(dlgood[,23]) / abs(dlgood[,22]))-1)
+
+mean(dljump1good$Deadlift2Kg)
+mean(dljump2good$Deadlift3Kg)
+mean(dljump1good$Deadlift2Kg) + mean(dljump2good$Deadlift3Kg)
+```
