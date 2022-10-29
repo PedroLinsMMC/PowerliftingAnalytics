@@ -442,3 +442,44 @@ mean(dljump1good$Deadlift2Kg)
 mean(dljump2good$Deadlift3Kg)
 mean(dljump1good$Deadlift2Kg) + mean(dljump2good$Deadlift3Kg)
 ```
+
+
+# Progression
+```{r}
+#####################
+# Lifts Progression #
+#####################
+
+dfname = df %>%
+  filter(Name == Name1)
+
+coeff = 0.5
+ggplot(dftotal, aes(x=Date))+
+  geom_line(aes(y = Best3SquatKg, color = "Squat"))+
+  geom_line(aes(y = Best3DeadliftKg, color= "Deadlift"))+
+  geom_line(aes(y = Best3BenchKg/coeff, color = "Bench Press")) +
+  #geom_line(aes(y = BodyweightKg, color = "Bodyweight")) +
+  scale_y_continuous(name = "Squat / Deadlift", sec.axis = sec_axis(~.*coeff, name="Bench Press"))
+  
+```
+
+```{r}
+###########################
+# Coefficient progression #
+###########################
+
+dfname = df %>%
+  filter(Name == Name1)
+
+coeff2 = 1/5
+ggplot(dftotal, aes(x=Date))+
+  geom_line(aes(y = Wilks, color="Wilks"))+
+  geom_line(aes(y = Glossbrenner, color="Glossbrenner"))+
+  geom_line(aes(y = Goodlift/coeff2, color="Goodlift")) +
+  geom_line(aes(y = Dots, color="Dots"))+
+  scale_y_continuous(name = "Wilks, Glossbrenner, Dots", sec.axis = sec_axis(~.*coeff, name="Goodlift"))
+```
+
+
+
+
