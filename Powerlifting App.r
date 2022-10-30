@@ -40,11 +40,11 @@ ui <- fluidPage(theme = shinytheme("united"),
                                     mainPanel(
                                       tags$label(h3('Status/Output')), # Status/Output Text Box
                                       verbatimTextOutput('contents'),
-                                      h4("Chances of a good lift"),
+                                      h4("Chances of a good lift:"),
                                       tableOutput('tabledata'), # Results table
                                       tableOutput('tabledata2'), # Results table
                                       tableOutput('tabledata3'), # Results table
-                                     # h4("Output 1"),
+                                      h4("Output 1"),
                                       verbatimTextOutput("txtout"),
                                     ) # mainPanel()
                                     

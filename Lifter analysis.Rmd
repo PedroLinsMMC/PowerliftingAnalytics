@@ -66,6 +66,7 @@ colnames(sq1idx) = c("sq1idx")
 # Second Squat
 sq2 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Squat2Kg > 0)
 colnames(sq2) = c("Squat2", "sq2")
 
@@ -79,6 +80,7 @@ colnames(sq2idx) = c("sq2idx")
 # Thrid Squat
 sq3 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Squat3Kg > 0)
 colnames(sq3) = c("Squat3", "sq3")
 
@@ -103,6 +105,7 @@ sq
 # First Bench Press
 bp1 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Bench1Kg > 0)
 colnames(bp1) = c("Bench1", "bp1")
 
@@ -116,6 +119,7 @@ bp1idx
 # Second Bench Press
 bp2 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Bench2Kg > 0)
 colnames(bp2) = c("Bench2", "bp2")
 
@@ -129,6 +133,7 @@ bp2idx
 # Thrid Bench Press
 bp3 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Bench3Kg > 0)
 colnames(bp3) = c("Bench3", "bp3")
 
@@ -155,6 +160,7 @@ bp
 # First Deadlift
 dl1 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Deadlift1Kg > 0)
 colnames(dl1) = c("Deadlift1", "dl1")
 
@@ -168,6 +174,7 @@ dl1idx
 # Second Deadlift
 dl2 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Deadlift2Kg > 0)
 colnames(dl2) = c("Deadlift2", "dl2")
 
@@ -181,6 +188,7 @@ dl2idx
 # Thrid Deadlift
 dl3 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Deadlift3Kg > 0)
 colnames(dl3) = c("Deadlift3", "dl3")
 
