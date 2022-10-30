@@ -48,10 +48,11 @@ and by time (is it changing through time?)
 #########
 
 Name1 = "Pedro Lins"
-
+Comptype = "Raw"
 # First squat
 sq1 = df %>%
   filter(Name == Name1) %>%
+  filter(Equipment == Comptype) %>%
   count(Squat1Kg > 0)
 colnames(sq1) = c("Squat1", "sq1")
 
