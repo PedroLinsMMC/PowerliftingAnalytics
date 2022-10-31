@@ -1,0 +1,14 @@
+name: PowerliftingAnalytics
+title: PowerliftingAnalytics
+username:
+account: 3w88wn-pedro-lins
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7465348
+bundleId: 6457019
+url: https://3w88wn-pedro-lins.shinyapps.io/PowerliftingAnalytics/
+when: 1667169454.01509
+lastSyncTime: 1667169454.01511
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .gitattributes|about.Rmd|app 5.r|index.Rmd|Lifter analysis.Rmd|openpowerlifting.csv|Part 1.Rmd

@@ -1,30 +1,24 @@
-############################################
-# Data Professor                           #
-# http://youtube.com/dataprofessor         #
-# http://github.com/dataprofessor          #
-# http://facebook.com/dataprofessor        #
-# https://www.instagram.com/data.professor #
-############################################
+####################################
+# Data Professor                   #
+# http://youtube.com/dataprofessor #
+# http://github.com/dataprofessor  #
+####################################
 
+# Modified from Winston Chang, 
+# https://shiny.rstudio.com/gallery/shiny-theme-selector.html
 
-# Load packages
+# Concepts about Reactive programming used by Shiny, 
+# https://shiny.rstudio.com/articles/reactivity-overview.html
+
+# Load R packages
+library(shiny)
+library(shinythemes)
+library(ggplot2)
 library(RCurl)
 library(gapminder)
 library(tidyverse)
-library(ggplot2)
-library(shiny)
-library(shinythemes)
 
-# Read the powerlifting data set
-
-#library(RCurl)
-#x <- getURL("https://media.githubusercontent.com/media/PedroLinsMMC/PowerliftingAnalytics/main/openpowerlifting.csv")
-#df <- read.csv(text = x)
-
-
-####################################
-# User Interface                   #
-####################################
+# Define UI
 ui <- fluidPage(theme = shinytheme("united"),
                 navbarPage("Powerlifting Analytics:",
                            
@@ -34,8 +28,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                                       HTML("<h3>Input parameters</h3>"),
                                       textInput("txt1", "Full Name:", ""),
                                       selectInput(inputId = "equipment", label = "Equipment:", 
-                                                  choices = list("Raw" = "Raw", "Multi-ply" = "Multi-ply", "Single-ply" = "Single-ply", "Unlimited" = "Unlimited", "Wraps" = "wraps"), 
-                                                  ),
+                                                  choices = list("Raw" = "Raw", "Multi-ply" = "Multi-ply", "Single-ply" = "Single-ply", "Unlimited" = "Unlimited", "Wraps" = "wraps") 
+                                      ),
                                       actionButton("submitbutton", 
                                                    "Submit", 
                                                    class = "btn btn-primary")
@@ -49,37 +43,32 @@ ui <- fluidPage(theme = shinytheme("united"),
                                       tableOutput('tabledata2'), # Results table
                                       tableOutput('tabledata3'), # Results table
                                       #h4("Output 1"),
-                                      verbatimTextOutput("txtout"),
+                                      verbatimTextOutput("txtout")
                                     ) # mainPanel()
                                     
                            ), #tabPanel(), Home
                            
-                      #     tabPanel("About", 
-                     #               titlePanel("About"), 
-                      #              div(includeMarkdown("about.md"), 
-                                   #     align="justify")
-                       #    ) #tabPanel(), About
+                           
                            
                 ) # navbarPage()
 ) # fluidPage()
 
 
-####################################
-# Server                           #
-####################################
+# Define server function  
 server <- function(input, output, session) {
   
   # Input Data
   
-#########
-# Squat #
-#########
+  #########
+  # Squat #
+  #########
   
   datasetInput <- reactive({  
     
-    
     #x <- getURL("https://media.githubusercontent.com/media/PedroLinsMMC/PowerliftingAnalytics/main/openpowerlifting.csv")
     #df <- read.csv(text = x)
+    
+    df = read_csv("openpowerlifting.csv")
     
     Name1 = input$txt1
     Comptype = input$equipment
@@ -97,7 +86,7 @@ server <- function(input, output, session) {
     }
     #colnames(sq1idx) = c("Squat 1")
     
-
+    
     # Second Squat
     sq2 = df %>%
       filter(Name == Name1) %>%
@@ -126,18 +115,19 @@ server <- function(input, output, session) {
     #colnames(sq3idx) = c("Squat 3")
     
     SquatIndex = (Squat1 + Squat2 + Squat3)/3
-   # colnames(sq) = c("SquatIndex")
+    # colnames(sq) = c("SquatIndex")
     
     sq_index = data.frame(Squat1, Squat2, Squat3, SquatIndex)
     colnames(sq_index) = c("Squat1", "Squat2", "Squat3", "SquatIndex")
     
     print(sq_index)
     
-  })
+  })   
   
-###############
-# Bench Press #
-###############
+  
+  ###############
+  # Bench Press #
+  ###############
   
   datasetInput2 <- reactive({  
     
@@ -216,7 +206,7 @@ server <- function(input, output, session) {
     } else {dl1idx = dl1[2,2] / (dl1[1,2] + dl1[2,2])
     }
     #colnames(dl1idx) = c("Deadlift 1")
-
+    
     # Second Deadlift
     dl2 = df %>%
       filter(Name == Name1) %>%
@@ -229,7 +219,7 @@ server <- function(input, output, session) {
     } else {dl2idx = dl2[2,2] / (dl2[1,2] + dl2[2,2])
     }
     #colnames(dl2idx) = c("Deadlift 2")
-
+    
     # Thrid Deadlift
     dl3 = df %>%
       filter(Name == Name1) %>%
@@ -242,7 +232,7 @@ server <- function(input, output, session) {
     } else {dl3idx = dl3[2,2] / (dl3[1,2] + dl3[2,2])
     }
     #colnames(dl3idx) = c("Deadlift 3")
-
+    
     dl = (dl1idx + dl2idx + dl3idx)/3
     #colnames(dl) = c("Deadlift Index")
     
@@ -253,12 +243,7 @@ server <- function(input, output, session) {
     
   })
   
-  # Status/Output Text Box
-
-
- # server
-
-    output$contents <- renderPrint({
+  output$contents <- renderPrint({
     if (input$submitbutton>0) { 
       isolate("Calculation complete.") 
     } else {
@@ -286,12 +271,9 @@ server <- function(input, output, session) {
       isolate(datasetInput3()) 
     } 
   })
-}
+  
+} # server
 
 
-
-
-####################################
-# Create Shiny App                 #
-####################################
+# Create Shiny object
 shinyApp(ui = ui, server = server)

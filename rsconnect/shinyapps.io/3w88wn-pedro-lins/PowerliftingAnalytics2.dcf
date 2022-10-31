@@ -1,0 +1,14 @@
+name: PowerliftingAnalytics2
+title:
+username:
+account: 3w88wn-pedro-lins
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7466702
+bundleId: 6457160
+url: https://3w88wn-pedro-lins.shinyapps.io/PowerliftingAnalytics2/
+when: 1667175726.17739
+lastSyncTime: 1667175726.17741
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: openpowerlifting.csv
