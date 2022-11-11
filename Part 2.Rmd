@@ -33,8 +33,9 @@ df = read_csv(openpowerlifting)
 head(df) #looking at data
 summary(df) #checking data
 
-df2 = df[c(1:13, 15:18, 20:23, 25:31, 37)]
-df3 = df2[complete.cases(df2), ] #droped rows containing NA because they can interfere with modeling
+df2 = df[c(1:13, 15:18, 20:23, 25, 26,28:31, 37)]
+summary(df2)
+df3 = df2 #[complete.cases(df2), ] #droped rows containing NA because they can interfere with modeling
 summary(df3) #no more NAs
 ```
 
@@ -158,38 +159,51 @@ ggplot(predicao, aes(TotalKg, fit))+
 
 ```{r}
 df_new2 = df3 %>%
-  #filter(Wilks > 200) %>%
-  #filter(Wilks < 500) %>%
-  filter(Equipment == "Raw") %>%
-  #filter(BodyweightKg > 83.0) %>%
-  #filter(BodyweightKg < 130) %>%
-  filter(Sex == "M") %>%
-  filter(Year > 2015) %>%
-  filter(Event == "SBD")%>%
-  filter(Division == "O") %>%
-  filter(WeightClassKg == "83")
+  filter(Equipment == "Raw") %>% #ok
+  filter(Sex == "M") %>% #ok
+  filter(Event == "SBD")%>% #ok
+  filter(Division == "Open") %>% #ok
+  filter(WeightClassKg == "93") %>%
+  filter(Squat1Kg > 0) %>%
+  filter(Bench1Kg > 0) %>%
+  filter(Deadlift1Kg > 0) %>%
+    filter(Squat2Kg > 0) %>%
+    filter(Bench2Kg > 0) %>%
+    filter(Deadlift2Kg > 0) %>%
+      filter(Squat3Kg > 0) %>%
+      filter(Bench3Kg > 0) %>%
+      filter(Deadlift3Kg > 0) %>%
+  filter(Year > 2020)
   
+summary(df_new2)
+
+ggplot(df_new2, aes(TotalKg))+
+  geom_boxplot()
+
 df_new = data.frame(df_new2$Sex, df_new2$Equipment, df_new2$Age, df_new2$BodyweightKg, df_new2$Squat1Kg,df_new2$Squat2Kg,df_new2$Squat3Kg,df_new2$Bench1Kg, df_new2$Bench2Kg, df_new2$Bench3Kg, df_new2$Deadlift1Kg,df_new2$Deadlift2Kg,df_new2$Deadlift3Kg, df_new2$TotalKg)
 
-mod = lm(df_new2$TotalKg ~  -1 +df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$BodyweightKg, df_new)
-summary(mod)
+mod = lm(df_new2$TotalKg ~  df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$BodyweightKg, df_new)
+summary(mod) 
 
-#mod = lm(df_new2$TotalKg ~  df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$BodyweightKg, df_new)
-#summary(mod) 
+mod = lm(df_new2$TotalKg ~  -1+df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
+summary(mod) 
 
-#mod = lm(df_new2$TotalKg ~ df_new2$Deadlift1Kg +  df_new2$Sex +  df_new2$BodyweightKg, df_new)
-#summary(mod) #best model so far
-# not taking squats and bench into consideration?
-
-#df_new2$Male <- +(df_new2$Sex == "M")
-#df_new2$Female <- +(df_new2$Sex == "F")
-
-#dfnovo = df_new2[c(2,9,21,26)]
-#summary(dfnovo)
-#chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
+dfnovo = df_new2[c(5,9,11,15,19)]
+chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
 
 
 ```
+
+```{r}
+#########################
+# Boxcox transformation #
+#########################
+box_cox = boxcox(df_new2$TotalKg ~ (df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$BodyweightKg))
+lambda = box_cox$x[which.max(box_cox$y)]
+mod <- lm(((df_new2$TotalKg^lambda-1)/lambda) ~ ( df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$BodyweightKg))
+summary(mod)
+```
+
 
 ```{r}
 #####################
@@ -208,17 +222,17 @@ bptest(mod) # p-value = 0.0591: fail to reject the null hypothesis (p-value > 0.
 dwtest(mod) # DW = 1.7246: close to zero autocorrelation (1.50 > 1.72 > 2.50)
 
 # define plotting area
-#par(mfrow=c(2,2))
+par(mfrow=c(2,2))
 
 # plot residual analysis
-#plot(aov(mod)) #ok
+plot(aov(mod)) #ok
 ```
 
 
 ```{r}
 
-predict = predict(mod, dfnovo, interval="prediction")
-predicao =data.frame(dfnovo, predict)
+predict = predict(mod, dfnovo, interval="confidence")
+predicao =data.frame(df_new2[c(23)], predict)
 
 ggplot(predicao, aes(TotalKg, fit))+
   geom_point()+
