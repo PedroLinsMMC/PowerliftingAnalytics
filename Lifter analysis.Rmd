@@ -488,6 +488,14 @@ ggplot(dftotal, aes(x=Date))+
   geom_line(aes(y = Dots, color="Dots"))+
   scale_y_continuous(name = "Wilks, Glossbrenner, Dots", sec.axis = sec_axis(~.*coeff, name="Goodlift"))
 ```
+```{r}
+
+dfsmall <- df %>%
+  filter(Date > 2020)
+print (dfsmall)
+write.csv(dfsmall,"openpowerliftingsmall.csv", row.names = FALSE)
+
+```
 
 
 

@@ -1,0 +1,228 @@
+---
+title: "Part 2"
+author: "Pedro Lins"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+############
+# Packages #
+############
+library(plyr)
+library(gapminder)
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(lmtest) # tests
+library(MASS) # boxcox
+library(nortest) #ad.test for resifual normality 
+library(PerformanceAnalytics) # correlation map
+```
+
+```{r}
+#############
+# Load Data #
+#############
+openpowerlifting = "openpowerlifting.csv" 
+df = read_csv(openpowerlifting)
+head(df) #looking at data
+summary(df) #checking data
+
+df2 = df[c(1:13, 15:18, 20:23, 25:31, 37)]
+df3 = df2[complete.cases(df2), ] #droped rows containing NA because they can interfere with modeling
+summary(df3) #no more NAs
+```
+
+```{r}
+#############################
+# Exploratory Data Analysis #
+#############################
+#to understand properties of the data
+#to inspect qualitative features rather than a huge table of raw data
+#to discover new patterns or associations
+
+#quantitative variables: Age,Bodyweight, Squat (1,2,3), Bench (1,2,3), Deadlift(1,2,3), Total,  Dots, Wilks Glossbrenner, Goodlift, Date, Year
+
+ggplot(df3)+
+  geom_boxplot(aes(Age)) 
+
+ggplot(df3)+
+    geom_boxplot(aes(BodyweightKg)) 
+
+ggplot(df3,aes(x = Squat1Kg, y= TotalKg))+
+  geom_point() 
+ggplot(df3,aes(x = Squat2Kg, y= TotalKg))+
+  geom_point() 
+ggplot(df3,aes(x = Squat3Kg, y= TotalKg))+
+  geom_point() 
+
+ggplot(df3)+
+  geom_boxplot(aes(TotalKg)) 
+ggplot(df3)+
+  geom_boxplot(aes(Dots)) 
+
+
+  
+# I did it because date was in DD/MM/YYYY format, to make it easier for analyse, I made it just YYYY. 
+df3$Year = c(format(df3$Date, "%Y"))
+df3$Year = as.numeric(df3$Year)
+
+df1 = df %>%
+  filter(Sex== "F") %>%
+  filter(Federation=="IPF") %>%
+  filter(Year == "2019")
+  
+ggplot(df1, aes(WeightClassKg))+
+  geom_bar()
+
+df2 = df %>%
+  filter(Sex== "M") %>%
+  filter(Federation=="IPF") %>%
+  filter(Year == "2019") %>%
+  mutate(WeightClassKg = fct_relevel(WeightClassKg,"53", "59", "66", "74", "83", "93", "105", "120", "120+"))
+  
+ggplot(df2, aes(WeightClassKg))+
+  geom_bar()
+
+
+```
+
+```{r}
+df_new2 = df %>%
+  filter(Wilks > 550) %>%
+  filter(Equipment == "Raw") %>%
+  filter(Year == 2019) 
+  
+
+df_new = data.frame(df_new2$Sex, df_new2$Equipment, df_new2$Age, df_new2$BodyweightKg, df_new2$Squat1Kg,df_new2$Squat2Kg,df_new2$Squat3Kg,df_new2$Bench1Kg, df_new2$Bench2Kg, df_new2$Bench3Kg, df_new2$Deadlift1Kg,df_new2$Deadlift2Kg,df_new2$Deadlift3Kg, df_new2$TotalKg)
+
+#mod = lm(df_new2$TotalKg ~ df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$Sex +  df_new2$BodyweightKg, df_new)
+#summary(mod) 
+
+mod = lm(df_new2$TotalKg ~ df_new2$Deadlift1Kg +  df_new2$Sex +  df_new2$BodyweightKg, df_new)
+summary(mod) #best model so far
+# not taking squats and bench into consideration?
+
+#df_new2$Male <- +(df_new2$Sex == "M")
+#df_new2$Female <- +(df_new2$Sex == "F")
+
+dfnovo = df_new2[c(2,9,21,26)]
+summary(dfnovo)
+#chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
+
+
+```
+
+```{r}
+#####################
+# Residual analysis #
+#####################
+anares = rstandard((mod))
+
+# normality test for residues
+ad.test(anares) # p-value = 0.1164, since it is greater than 0.05, it is normal
+#shapiro.test(anares) # p-value = 0.08259, since it is greater than 0.05, it is normal 
+
+# homoscedasticity test
+bptest(mod) # p-value = 0.0591: fail to reject the null hypothesis (p-value > 0.05)
+
+# autocorrelation test
+dwtest(mod) # DW = 1.7246: close to zero autocorrelation (1.50 > 1.72 > 2.50)
+
+# define plotting area
+par(mfrow=c(2,2))
+
+# plot residual analysis
+plot(aov(mod)) #ok
+```
+
+
+```{r}
+
+predict = predict(mod, dfnovo, interval="prediction")
+predicao =data.frame(dfnovo, predict)
+
+ggplot(predicao, aes(TotalKg, fit))+
+  geom_point()+
+    stat_smooth(method = lm)+
+  theme_bw()
+
+```
+
+##############################################
+
+```{r}
+df_new2 = df3 %>%
+  #filter(Wilks > 200) %>%
+  #filter(Wilks < 500) %>%
+  filter(Equipment == "Raw") %>%
+  #filter(BodyweightKg > 83.0) %>%
+  #filter(BodyweightKg < 130) %>%
+  filter(Sex == "M") %>%
+  filter(Year > 2015) %>%
+  filter(Event == "SBD")%>%
+  filter(Division == "O") %>%
+  filter(WeightClassKg == "83")
+  
+df_new = data.frame(df_new2$Sex, df_new2$Equipment, df_new2$Age, df_new2$BodyweightKg, df_new2$Squat1Kg,df_new2$Squat2Kg,df_new2$Squat3Kg,df_new2$Bench1Kg, df_new2$Bench2Kg, df_new2$Bench3Kg, df_new2$Deadlift1Kg,df_new2$Deadlift2Kg,df_new2$Deadlift3Kg, df_new2$TotalKg)
+
+mod = lm(df_new2$TotalKg ~  -1 +df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$BodyweightKg, df_new)
+summary(mod)
+
+#mod = lm(df_new2$TotalKg ~  df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$BodyweightKg, df_new)
+#summary(mod) 
+
+#mod = lm(df_new2$TotalKg ~ df_new2$Deadlift1Kg +  df_new2$Sex +  df_new2$BodyweightKg, df_new)
+#summary(mod) #best model so far
+# not taking squats and bench into consideration?
+
+#df_new2$Male <- +(df_new2$Sex == "M")
+#df_new2$Female <- +(df_new2$Sex == "F")
+
+#dfnovo = df_new2[c(2,9,21,26)]
+#summary(dfnovo)
+#chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
+
+
+```
+
+```{r}
+#####################
+# Residual analysis #
+#####################
+anares = rstandard((mod))
+
+# normality test for residues
+ad.test(anares) # p-value = 0.1164, since it is greater than 0.05, it is normal
+shapiro.test(anares) # p-value = 0.08259, since it is greater than 0.05, it is normal 
+
+# homoscedasticity test
+bptest(mod) # p-value = 0.0591: fail to reject the null hypothesis (p-value > 0.05)
+
+# autocorrelation test
+dwtest(mod) # DW = 1.7246: close to zero autocorrelation (1.50 > 1.72 > 2.50)
+
+# define plotting area
+#par(mfrow=c(2,2))
+
+# plot residual analysis
+#plot(aov(mod)) #ok
+```
+
+
+```{r}
+
+predict = predict(mod, dfnovo, interval="prediction")
+predicao =data.frame(dfnovo, predict)
+
+ggplot(predicao, aes(TotalKg, fit))+
+  geom_point()+
+    stat_smooth(method = lm)+
+  theme_bw()
+
+```

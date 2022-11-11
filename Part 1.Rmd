@@ -24,7 +24,7 @@ library(plyr)
 library(gapminder)
 library(tidyverse)
 library(knitr)
-```
+```    
 
 # Load your data
 
@@ -292,3 +292,51 @@ Female athletes presence is driving it even faster. This is a worldwide trend bu
 On the long-term, based on the analysis, my recommendation for federations, coaches and influencers worldwide that want to help the sport to grow, is to engage female lifters to join the sport. Specifically, the main opportunity is to promote raw powerlifting events.
 
 Furthermore, since data showed that the majority of them age around 23, social media like Instagram, Tik Tok, seems to be a good way to communicate with this public.
+
+```{r}
+dfteste = df %>%
+  filter(Year > 2015)
+dfteste$Sex <- NULL
+dfteste$Event <- NULL
+dfteste$Age <- NULL
+dfteste$AgeClass <- NULL
+dfteste$Sex <- NULL
+dfteste$BirthYearClass <- NULL
+dfteste$Division <- NULL
+dfteste$WeightClassKg <- NULL
+dfteste$Squat4Kg <- NULL
+dfteste$Bench4Kg <- NULL
+dfteste$Deadlift4Kg <- NULL
+dfteste$Place <- NULL
+dfteste$Tested <- NULL
+dfteste$Country <- NULL
+dfteste$State <- NULL
+dfteste$Federation <- NULL
+dfteste$ParentFederation <- NULL
+dfteste$MeetCountry <- NULL
+dfteste$MeetState <- NULL
+dfteste$MeetTown <- NULL
+dfteste$MeetName <- NULL
+dfteste$BodyweightKg <- NULL
+dfteste$TotalKg <- NULL
+dfteste$Dots <- NULL
+dfteste$Wilks <- NULL
+dfteste$Glossbrenner <- NULL
+dfteste$Goodlift <- NULL
+dfteste$Year <- NULL
+dfteste$Best3DeadliftKg <- NULL
+dfteste$Best3BenchKg <- NULL
+dfteste$Best3SquatKg <- NULL
+dfteste$BodyweightKg <- NULL
+
+print(dfteste)
+
+write.csv(dfteste,"openpowerliftingsmall.csv", row.names = FALSE)
+```
+
+```{r}
+    x <- getURL("https://raw.githubusercontent.com/PedroLinsMMC/R-projects/main/openpowerliftingsmall.csv")
+    df <- read.csv(text = x)
+    print(df1234)
+```
+
