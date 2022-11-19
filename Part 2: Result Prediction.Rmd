@@ -30,18 +30,35 @@ library(PerformanceAnalytics) # correlation map
 #############
 openpowerlifting = "openpowerlifting.csv" 
 df = read_csv(openpowerlifting)
+```
+
+
+```{r}
+#####################
+# Checking the data #
+#####################
+#understand the quirks of the data set and potential errors
+
 head(df) #looking at data
 summary(df) #checking data
 
-df2 = df[c(1:13, 15:18, 20:23, 25, 26,28:31, 37)]
-summary(df2)
-df3 = df2
+df2 = df[c(1:13, 15:18, 20:23, 25, 26,28:31, 37)] #dropping columns to make it faster to load
 
 # I did it because date was in DD/MM/YYYY format, to make it easier for analyse, I made it just YYYY. 
-df3$Year = c(format(df3$Date, "%Y"))
-df3$Year = as.numeric(df3$Year)
+df2$Year = c(format(df2$Date, "%Y"))
+df2$Year = as.numeric(df2$Year)
 
+str(df2)
+
+unique(df2$Sex) #3 variables
+unique(df2$Event)  #7 variabables
+unique(df2$Equipment)  #6 variables
+unique(df2$AgeClass)
+unique(df2$BirthYearClass)
+unique(df2$WeightClassKg)
+unique(df2$Year)
 ```
+
 
 ```{r}
 #############################
@@ -53,31 +70,24 @@ df3$Year = as.numeric(df3$Year)
 
 #quantitative variables: Age,Bodyweight, Squat (1,2,3), Bench (1,2,3), Deadlift(1,2,3), Total,  Dots, Wilks Glossbrenner, Goodlift, Date, Year
 
-ggplot(df3)+
-  geom_boxplot(aes(Age)) 
-
-ggplot(df3)+
+ggplot(df2)+
+  geom_boxplot(aes(Age)) +
+ggplot(df2)+
     geom_boxplot(aes(BodyweightKg)) 
-
-ggplot(df3,aes(x = Squat1Kg, y= TotalKg))+
+ggplot(df2,aes(x = Squat1Kg, y= TotalKg))+
   geom_point() 
-ggplot(df3,aes(x = Squat2Kg, y= TotalKg))+
+ggplot(df2,aes(x = Squat2Kg, y= TotalKg))+
   geom_point() 
-ggplot(df3,aes(x = Squat3Kg, y= TotalKg))+
+ggplot(df2,aes(x = Squat3Kg, y= TotalKg))+
   geom_point() 
-
-ggplot(df3)+
+ggplot(df2)+
   geom_boxplot(aes(TotalKg)) 
-ggplot(df3)+
+ggplot(df2)+
   geom_boxplot(aes(Dots)) 
-
-
-  
-
 ```
 
 ```{r}
-df_new2 = df3 %>%
+df_new2 = df2 %>%
   filter(Equipment == "Raw") %>% #ok
   filter(Sex == "M") %>% #ok
   filter(Event == "SBD")%>% #ok
@@ -107,22 +117,12 @@ summary(mod)
 mod = lm(df_new2$TotalKg ~  -1+df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
 summary(mod) 
 
+mod = lm(df_new2$TotalKg ~  -1+df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
+summary(mod) 
+
 dfnovo = df_new2[c(5,9,11,15,19)]
 chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
-
-
 ```
-
-```{r}
-#########################
-# Boxcox transformation #
-#########################
-box_cox = boxcox(df_new2$TotalKg ~ (df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$BodyweightKg))
-lambda = box_cox$x[which.max(box_cox$y)]
-mod <- lm(((df_new2$TotalKg^lambda-1)/lambda) ~ ( df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$BodyweightKg))
-summary(mod)
-```
-
 
 ```{r}
 #####################
@@ -149,13 +149,14 @@ plot(aov(mod)) #ok
 
 
 ```{r}
-
 predict = predict(mod, dfnovo, interval="confidence") #confidence
 predicao =data.frame(df_new2[c(23)], predict)
+predicao$erro = 100*(predicao$TotalKg-predicao$fit)/predicao$TotalKg
+
+summary(predicao)
 
 ggplot(predicao, aes(TotalKg, fit))+
   geom_point()+
     stat_smooth(method = lm)+
   theme_bw()
-
 ```
