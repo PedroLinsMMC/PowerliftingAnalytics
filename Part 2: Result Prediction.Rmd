@@ -22,6 +22,7 @@ library(lmtest) # tests
 library(MASS) # boxcox
 library(nortest) #ad.test for resifual normality 
 library(PerformanceAnalytics) # correlation map
+library(car) #variance factorinflation factor
 ```
 
 ```{r}
@@ -42,21 +43,17 @@ df = read_csv(openpowerlifting)
 head(df) #looking at data
 summary(df) #checking data
 
-df2 = df[c(1:13, 15:18, 20:23, 25, 26,28:31, 37)] #dropping columns to make it faster to load
+df2 = df[c(4, 5, 8,9,11:13, 16:18, 21:23, 26, 36:37)] #dropping columns to make it faster to load
 
 # I did it because date was in DD/MM/YYYY format, to make it easier for analyse, I made it just YYYY. 
 df2$Year = c(format(df2$Date, "%Y"))
 df2$Year = as.numeric(df2$Year)
 
 str(df2)
-
-unique(df2$Sex) #3 variables
-unique(df2$Event)  #7 variabables
-unique(df2$Equipment)  #6 variables
-unique(df2$AgeClass)
-unique(df2$BirthYearClass)
-unique(df2$WeightClassKg)
-unique(df2$Year)
+sapply(lapply(df2, unique), length)
+summary(df2)
+df3 = na.omit(df2)
+sapply(lapply(df3, unique), length)
 ```
 
 
@@ -71,7 +68,7 @@ unique(df2$Year)
 #quantitative variables: Age,Bodyweight, Squat (1,2,3), Bench (1,2,3), Deadlift(1,2,3), Total,  Dots, Wilks Glossbrenner, Goodlift, Date, Year
 
 ggplot(df2)+
-  geom_boxplot(aes(Age)) +
+  geom_boxplot(aes(Age))
 ggplot(df2)+
     geom_boxplot(aes(BodyweightKg)) 
 ggplot(df2,aes(x = Squat1Kg, y= TotalKg))+
@@ -84,15 +81,21 @@ ggplot(df2)+
   geom_boxplot(aes(TotalKg)) 
 ggplot(df2)+
   geom_boxplot(aes(Dots)) 
+
+summary(df2)
 ```
 
 ```{r}
+######################################
+# Statistical modeling and inference #
+######################################
+
 df_new2 = df2 %>%
   filter(Equipment == "Raw") %>% #ok
   filter(Sex == "M") %>% #ok
   filter(Event == "SBD")%>% #ok
   filter(Division == "Open") %>% #ok
-  filter(WeightClassKg == "93") %>%
+  filter(WeightClassKg == "74") %>%
   filter(Squat1Kg > 0) %>%
   filter(Bench1Kg > 0) %>%
   filter(Deadlift1Kg > 0) %>%
@@ -102,26 +105,29 @@ df_new2 = df2 %>%
       filter(Squat3Kg > 0) %>%
       filter(Bench3Kg > 0) %>%
       filter(Deadlift3Kg > 0) %>%
-  filter(Year > 2020)
+  filter(TotalKg>0) %>%
+  filter(Year > 2018) 
   
-summary(df_new2)
+#df_new2 = df_new2[-c(21),]
 
-ggplot(df_new2, aes(TotalKg))+
-  geom_boxplot()
-
-df_new = data.frame(df_new2$Sex, df_new2$Equipment, df_new2$Age, df_new2$BodyweightKg, df_new2$Squat1Kg,df_new2$Squat2Kg,df_new2$Squat3Kg,df_new2$Bench1Kg, df_new2$Bench2Kg, df_new2$Bench3Kg, df_new2$Deadlift1Kg,df_new2$Deadlift2Kg,df_new2$Deadlift3Kg, df_new2$TotalKg)
-
-mod = lm(df_new2$TotalKg ~  df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg + df_new2$Age + df_new2$BodyweightKg, df_new)
+mod = lm(df_new2$TotalKg ~  -1 + df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
 summary(mod) 
 
-mod = lm(df_new2$TotalKg ~  -1+df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
+#########################
+# Boxcox transformation #
+#########################
+x = df_new2$TotalKg
+b <- boxcox(lm(x ~ 1))
+lambda <- b$x[which.max(b$y)] 
+new_x_exact <- (x ^ lambda - 1) / lambda
+
+mod = lm(((df_new2$TotalKg**lambda-1)/lambda) ~  -1 + df_new2$Squat1Kg + df_new2$Bench1Kg + df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
 summary(mod) 
 
-mod = lm(df_new2$TotalKg ~  -1+df_new2$Deadlift1Kg  + df_new2$BodyweightKg, df_new)
-summary(mod) 
+dfcorr = df_new2[c(5,9,11,15,19)]
+chart.Correlation(dfcorr, histogram=TRUE, pch=19) #checking correlations
 
-dfnovo = df_new2[c(5,9,11,15,19)]
-chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
+
 ```
 
 ```{r}
@@ -130,9 +136,11 @@ chart.Correlation(dfnovo, histogram=TRUE, pch=19) #checking correlations
 #####################
 anares = rstandard((mod))
 
+vif(mod)
+
 # normality test for residues
 ad.test(anares) # p-value = 0.1164, since it is greater than 0.05, it is normal
-shapiro.test(anares) # p-value = 0.08259, since it is greater than 0.05, it is normal 
+#shapiro.test(anares) # p-value = 0.08259, since it is greater than 0.05, it is normal 
 
 # homoscedasticity test
 bptest(mod) # p-value = 0.0591: fail to reject the null hypothesis (p-value > 0.05)
@@ -151,12 +159,52 @@ plot(aov(mod)) #ok
 ```{r}
 predict = predict(mod, dfnovo, interval="confidence") #confidence
 predicao =data.frame(df_new2[c(23)], predict)
-predicao$erro = 100*(predicao$TotalKg-predicao$fit)/predicao$TotalKg
+predicao$erro = (predicao$TotalKg-predicao$fit)/predicao$TotalKg
 
-summary(predicao)
+sd(predicao$erro)
+which.max(predicao$erro)
 
 ggplot(predicao, aes(TotalKg, fit))+
   geom_point()+
     stat_smooth(method = lm)+
   theme_bw()
+
 ```
+
+```{r}
+######################################
+# Statistical modeling and inference #
+######################################
+df4 = df3 %>%
+  filter(Year > 2021) %>%
+  filter(ParentFederation == 'IPF')
+df4
+
+mod = lm(TotalKg ~ ., df4)
+summary(mod)
+
+#####################
+# Residual analysis #
+#####################
+anares = rstandard((mod))
+
+#collinearity
+vif(mod)  #has to be lower than 5
+
+# normality test for residues
+ad.test(anares) # p-value = 0.1164, since it is greater than 0.05, it is normal
+#shapiro.test(anares) # p-value = 0.08259, since it is greater than 0.05, it is normal 
+
+# homoscedasticity test
+bptest(mod) # p-value = 0.0591: fail to reject the null hypothesis (p-value > 0.05)
+
+# autocorrelation test
+dwtest(mod) # DW = 1.7246: close to zero autocorrelation (1.50 > 1.72 > 2.50)
+
+# define plotting area
+par(mfrow=c(2,2))
+
+# plot residual analysis
+plot(aov(mod)) 
+```
+
