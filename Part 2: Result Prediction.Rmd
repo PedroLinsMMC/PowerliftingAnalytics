@@ -64,8 +64,6 @@ ggplot(df,aes(x = Squat1Kg, y= TotalKg, color = Equipment))+
   theme_minimal()+
   ggtitle("Scatterplot: Squat x TotalKg")
 
-
-
 ggplot(df,aes(x = Sex, y = Wilks, fill = Sex)) +
   geom_violin(alpha = 0.6) +
   theme_minimal() + 
@@ -92,8 +90,7 @@ df2 = df %>%
   filter(Squat1Kg > 0) %>%
   filter(Bench1Kg > 0) %>%
   filter(Deadlift1Kg > 0) %>%
-  filter(Year == 2019)  #%>%
-  #filter(WeightClassKg == "74")
+  filter(Year == 2019) 
 
 summary(df2) # looking for NAs
 str(df2) # looking for NAs
@@ -103,34 +100,79 @@ sapply(lapply(df2, unique), length)
 df2=df2[-c(1,3,4,6,7,8,10,12:14,16:18,20:22,24:37)] #drop single values variable
 sapply(lapply(df2, unique), length)
 
-mod = lm(TotalKg ~ . , df2)
-mod = lm(TotalKg ~ Age + BodyweightKg + Bench1Kg + Deadlift1Kg, df2)
-mod = lm(TotalKg ~ Sex + Squat1Kg + Bench1Kg, df2)
+dfcor = data.frame(df2$Bench1Kg, df2$Squat1Kg, df2$Deadlift1Kg, df2$Age, df2$BodyweightKg)
+chart.Correlation(dfcor, histogram=TRUE, pch=19) #has to be lower than 70%
+
+mod = lm(TotalKg ~ ., df2) #first try
+summary(mod)
+
+mod = lm(TotalKg ~ . - Age, df2) #removing Age
+summary(mod)
+
+mod = lm(TotalKg ~ . - Sex - Age, df2) #removing Age
+summary(mod)
+
+mod = lm(TotalKg ~ BodyweightKg + Squat1Kg + Bench1Kg + Deadlift1Kg, df2) #second try
+summary(mod)
 
 mod = lm(TotalKg ~ Bench1Kg + Deadlift1Kg, df2)
 mod = lm(TotalKg ~ Bench1Kg + Squat1Kg, df2)
 summary(mod)
 
-dfcor = data.frame(df2$Bench1Kg, df2$Squat1Kg, df2$Deadlift1Kg, df2$Age, df2$BodyweightKg)
-chart.Correlation(dfcor, histogram=TRUE, pch=19) #has to be lower than 70%
+#collinearity
+vif = vif(mod)  #should be lower than 5
+barplot(vif, main = "VIF Values" ,col = "blue")
+abline( h = 5, col = "red") #remove squat since it has the higest VIF
+
+mod = lm(TotalKg ~ . - Squat1Kg, df2) #removing first squat
+summary(mod)
+
+mod = lm(TotalKg ~ . - Squat1Kg - Sex, df2) #removing first squat
+summary(mod)
+
+#collinearity
+vif = vif(mod)  #should be lower than 5
+barplot(vif, main = "VIF Values" ,col = "blue") #without Squat1Kg
+abline( h = 5, col = "red") 
+
 
 #####################
 # Residual analysis #
 #####################
-anares = rstandard((mod))
-
-#collinearity
-vif(mod)  #has to be lower than 5
+anares = rstandard(mod)
 
 # normality test for residues
-ad.test(anares) # p-value = 0.1164, since it is greater than 0.05, it is normal
-shapiro.test(anares) # p-value = 0.08259, since it is greater than 0.05, it is normal 
+ad.test(anares) # normal if greater than 0.05
+shapiro.test(anares) #normal if greater than 0.05
 
 # homoscedasticity test
-bptest(mod) # p-value = 0.0591: fail to reject the null hypothesis (p-value > 0.05)
+bptest(mod) #fail to reject the null hypothesis (p-value > 0.05)
 
 # autocorrelation test
-dwtest(mod) # DW = 1.7246: close to zero autocorrelation (1.50 > 1.72 > 2.50)
+dwtest(mod) #should be between 1.50 and 2.50
+
+# define plotting area
+par(mfrow=c(2,2))
+
+# plot residual analysis
+plot(aov(mod)) 
+
+df2 = df2[-45,] #removing outlier
+
+mod = lm(TotalKg ~ . - Squat1Kg - Sex, df2) #removing first squat
+summary(mod)
+
+anares = rstandard(mod)
+
+# normality test for residues
+ad.test(anares) # normal if greater than 0.05
+shapiro.test(anares) #normal if greater than 0.05
+
+# homoscedasticity test
+bptest(mod) #fail to reject the null hypothesis (p-value > 0.05)
+
+# autocorrelation test
+dwtest(mod) #should be between 1.50 and 2.50
 
 # define plotting area
 par(mfrow=c(2,2))
@@ -139,6 +181,33 @@ par(mfrow=c(2,2))
 plot(aov(mod)) 
 
 
+```
+
+```{r}
+#changing strategies
+
+df2 = df %>%
+  filter(MeetName == "World Classic Powerlifting Championships") %>%
+  filter(Squat1Kg > 0) %>%
+  filter(Bench1Kg > 0) %>%
+  filter(Deadlift1Kg > 0) %>%
+  filter(Year == 2019)  %>%
+  filter(WeightClassKg == "120+")
+
+summary(df2) # looking for NAs
+str(df2) # looking for NAs
+df2=df2[-c(14,19,24,34,39)] #drop NAs  columns
+df2 = na.omit(df2) #drop NAs rows
+sapply(lapply(df2, unique), length)
+df2=df2[-c(1,3,4,6,7,8,10,12:14,16:18,20:22,24:37)] #drop single values variable
+sapply(lapply(df2, unique), length)
+
+dfcor = data.frame(df2$Bench1Kg, df2$Squat1Kg, df2$Deadlift1Kg, df2$Age, df2$BodyweightKg)
+chart.Correlation(dfcor, histogram=TRUE, pch=19) #has to be lower than 70%
+```
+
+
+```{r}
 ###################################
 # Prediction and machine learning #
 ###################################
