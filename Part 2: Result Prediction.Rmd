@@ -23,6 +23,7 @@ library(MASS) # boxcox
 library(nortest) #ad.test for resifual normality 
 library(PerformanceAnalytics) # correlation map
 library(car) #variance factorinflation factor
+library(caret) #model cross validation
 ```
 
 ```{r}
@@ -184,7 +185,9 @@ plot(aov(mod))
 ```
 
 ```{r}
-#changing strategies
+##############
+# Best model #
+##############
 
 df2 = df %>%
   filter(MeetName == "World Classic Powerlifting Championships") %>%
@@ -192,35 +195,161 @@ df2 = df %>%
   filter(Bench1Kg > 0) %>%
   filter(Deadlift1Kg > 0) %>%
   filter(Year == 2019)  %>%
-  filter(WeightClassKg == "120+")
+  filter(Sex == "F") 
+
+# For men, it only works with those subsets:
+  #filter(WeightClassKg == "59" | WeightClassKg == "66" | WeightClassKg == "74"| WeightClassKg == "93"| WeightClassKg == "53")
+  #filter( WeightClassKg == "105" | WeightClassKg == "120+")
+  #filter(WeightClassKg == "83" | WeightClassKg == "120")
 
 summary(df2) # looking for NAs
 str(df2) # looking for NAs
 df2=df2[-c(14,19,24,34,39)] #drop NAs  columns
 df2 = na.omit(df2) #drop NAs rows
 sapply(lapply(df2, unique), length)
-df2=df2[-c(1,3,4,6,7,8,10,12:14,16:18,20:22,24:37)] #drop single values variable
+df2=df2[-c(1,2,3,4,6,7,8,10,12:14,16:18,20:22,24:37)] #drop single values variable
 sapply(lapply(df2, unique), length)
 
 dfcor = data.frame(df2$Bench1Kg, df2$Squat1Kg, df2$Deadlift1Kg, df2$Age, df2$BodyweightKg)
-chart.Correlation(dfcor, histogram=TRUE, pch=19) #has to be lower than 70%
+chart.Correlation(dfcor, histogram=TRUE, pch=19) #should to be lower than 70%
+
+mod = lm(TotalKg ~ ., df2) #first try
+summary(mod)
+
+vif(mod) #vif is not high even with all three lifts
+
+anares = rstandard(mod)
+
+# normality test for residues
+ad.test(anares) # normal if greater than 0.05
+shapiro.test(anares) #normal if greater than 0.05
+
+# homoscedasticity test
+bptest(mod) #fail to reject the null hypothesis (p-value > 0.05)
+
+# autocorrelation test
+dwtest(mod) #should be between 1.50 and 2.50
+
+# define plotting area
+par(mfrow=c(2,2))
+
+# plot residual analysis
+plot(aov(mod))
+
+df2=df2[-c(190,302),] #female outlier
+
+mod = lm(TotalKg ~ ., df2) #first try
+summary(mod)
+
+anares = rstandard(mod)
+
+# normality test for residues
+ad.test(anares) # normal if greater than 0.05
+shapiro.test(anares) #normal if greater than 0.05
+
+# homoscedasticity test
+bptest(mod) #fail to reject the null hypothesis (p-value > 0.05)
+
+# autocorrelation test
+dwtest(mod) #should be between 1.50 and 2.50
+
+# define plotting area
+par(mfrow=c(2,2))
+
+# plot residual analysis
+plot(aov(mod))
 ```
 
+
+```{r}
+#############################
+# Model performance metrics #
+#############################
+
+######################
+# General Validation #
+######################
+# Split the data into training and test set
+set.seed(124)
+training.samples <- df2$TotalKg %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- df2[training.samples, ]
+test.data <- df2[-training.samples, ]
+# Build the model
+model <- lm(TotalKg ~., data = train.data)
+# Make predictions and compute the R2, RMSE and MAE
+predictions <- model %>% predict(test.data)
+data.frame( R2 = R2(predictions, test.data$TotalKg),
+            RMSE = RMSE(predictions, test.data$TotalKg),
+            MAE = MAE(predictions, test.data$TotalKg))
+#Dividing the RMSE by the average value of the outcome variable will give you the prediction error rate, which should be as small as possible:
+RMSE(predictions, test.data$TotalKg)/mean(test.data$TotalKg)
+
+#########################
+# LOOCV - Leave one out #
+#########################
+#this method has higher execution time because it is repeated for as many data sets we have
+
+# Define training control
+train.control <- trainControl(method = "LOOCV")
+# Train the model
+model <- train(TotalKg ~., data = df2, method = "lm",
+               trControl = train.control)
+# Summarize the results
+print(model)
+
+# Define training control
+train.control <- trainControl(method = "LOOCV")
+# Train the model
+model2 <- train(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, data = df2, method = "lm",
+               trControl = train.control)
+# Summarize the results
+print(model2)
+
+mod = lm(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, df2)
+###########################
+# K-fold cross-validation #
+###########################
+#this method is similar, but instead of leaving one point, it leaves a k amount
+# how to choose k? lower value is more biased. higher value might have high variability. (5 or 10 based on empirical)
+
+# Define training control
+set.seed(123) 
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+model <- train(TotalKg ~., data = df2, method = "lm",
+               trControl = train.control)
+# Summarize the results
+print(model)
+
+####################################
+# Repeated K-fold cross-validation #
+####################################
+# Define training control
+set.seed(321)
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 3)
+# Train the model
+model <- train(TotalKg ~., data = df2, method = "lm",
+               trControl = train.control)
+# Summarize the results
+print(model)
+
+```
 
 ```{r}
 ###################################
 # Prediction and machine learning #
 ###################################
 
-predict = predict(mod, df2, interval="confidence") #confidence
-pred2 =data.frame(df7$TotalKg, predict)
+#Commonwealth Womens Classic Powerlifting Championships
+dfnew = read_csv("nominationipf.csv")
+pred = predict(mod, dfnew, interval="confidence") #confidence
+predictions=data.frame(dfnew$Name,pred)
+predictions$fit = round(predictions$fit)
+predictions$lwr = round(predictions$lwr)
+predictions$upr = round(predictions$upr)
+write.csv(predictions,"CommonwealthPredictions.csv", row.names = FALSE)
 
-sd(predicao$erro)
-which.max(predicao$erro)
-
-ggplot(predicao, aes(TotalKg, fit))+
-  geom_point()+
-    stat_smooth(method = lm)+
-  theme_bw()
 ```
 
