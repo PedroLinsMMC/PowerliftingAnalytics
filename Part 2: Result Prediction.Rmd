@@ -266,25 +266,6 @@ plot(aov(mod))
 # Model performance metrics #
 #############################
 
-######################
-# General Validation #
-######################
-# Split the data into training and test set
-set.seed(124)
-training.samples <- df2$TotalKg %>%
-  createDataPartition(p = 0.8, list = FALSE)
-train.data  <- df2[training.samples, ]
-test.data <- df2[-training.samples, ]
-# Build the model
-model <- lm(TotalKg ~., data = train.data)
-# Make predictions and compute the R2, RMSE and MAE
-predictions <- model %>% predict(test.data)
-data.frame( R2 = R2(predictions, test.data$TotalKg),
-            RMSE = RMSE(predictions, test.data$TotalKg),
-            MAE = MAE(predictions, test.data$TotalKg))
-#Dividing the RMSE by the average value of the outcome variable will give you the prediction error rate, which should be as small as possible:
-RMSE(predictions, test.data$TotalKg)/mean(test.data$TotalKg)
-
 #########################
 # LOOCV - Leave one out #
 #########################
@@ -307,34 +288,6 @@ model2 <- train(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, data = df2, m
 print(model2)
 
 mod = lm(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, df2)
-###########################
-# K-fold cross-validation #
-###########################
-#this method is similar, but instead of leaving one point, it leaves a k amount
-# how to choose k? lower value is more biased. higher value might have high variability. (5 or 10 based on empirical)
-
-# Define training control
-set.seed(123) 
-train.control <- trainControl(method = "cv", number = 10)
-# Train the model
-model <- train(TotalKg ~., data = df2, method = "lm",
-               trControl = train.control)
-# Summarize the results
-print(model)
-
-####################################
-# Repeated K-fold cross-validation #
-####################################
-# Define training control
-set.seed(321)
-train.control <- trainControl(method = "repeatedcv", 
-                              number = 10, repeats = 3)
-# Train the model
-model <- train(TotalKg ~., data = df2, method = "lm",
-               trControl = train.control)
-# Summarize the results
-print(model)
-
 ```
 
 ```{r}
@@ -349,7 +302,8 @@ predictions=data.frame(dfnew$Name,pred)
 predictions$fit = round(predictions$fit)
 predictions$lwr = round(predictions$lwr)
 predictions$upr = round(predictions$upr)
-write.csv(predictions,"CommonwealthPredictions.csv", row.names = FALSE)
+colnames(predictions) = c("Name", "Total","Lower", "Upper")
+write.csv(predictions,"CommonwealthPredictions.csv", row.names = TRUE)
 
 ```
 
