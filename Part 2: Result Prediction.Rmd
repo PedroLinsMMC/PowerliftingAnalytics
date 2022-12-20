@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, include=FALSE}
 ############
 # Packages #
 ############
@@ -241,6 +241,11 @@ df2=df2[-c(190,302),] #female outlier
 mod = lm(TotalKg ~ ., df2) #first try
 summary(mod)
 
+#collinearity
+vif = vif(mod)  #should be lower than 5
+barplot(vif, main = "VIF Values" ,col = "blue") #without Squat1Kg
+abline( h = 5, col = "red") 
+
 anares = rstandard(mod)
 
 # normality test for residues
@@ -288,6 +293,10 @@ model2 <- train(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, data = df2, m
 print(model2)
 
 mod = lm(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, df2)
+#collinearity
+vif = vif(mod)  #should be lower than 5
+barplot(vif, main = "VIF Values" ,col = "blue") #without Squat1Kg
+abline( h = 5, col = "red") 
 ```
 
 ```{r}
@@ -298,12 +307,55 @@ mod = lm(TotalKg ~ Age + Squat1Kg + Bench1Kg + Deadlift1Kg, df2)
 #Commonwealth Womens Classic Powerlifting Championships
 dfnew = read_csv("nominationipf.csv")
 pred = predict(mod, dfnew, interval="confidence") #confidence
-predictions=data.frame(dfnew$Name,pred)
+predictions=data.frame(dfnew$Name,dfnew$Total,pred)
 predictions$fit = round(predictions$fit)
 predictions$lwr = round(predictions$lwr)
 predictions$upr = round(predictions$upr)
-colnames(predictions) = c("Name", "Total","Lower", "Upper")
+colnames(predictions) = c("Name","Total","Prediction", "Lower", "Upper")
 write.csv(predictions,"CommonwealthPredictions.csv", row.names = TRUE)
+
+```
+
+```{r}
+#########################
+# Prediction Assessment #
+#########################
+
+dfpred = read_csv("CommonwealthPredictions.csv")
+dfpred$Erro = (1-(dfpred$Total/dfpred$Prediction))*100 #error in percentedge
+summary(dfpred)
+
+#Visualizing results
+ggplot(dfpred, aes(x=Total, y=Prediction))+
+  geom_point()+
+  geom_smooth()+
+  theme_minimal()
+
+ggplot(dfpred, aes(x=Total, y=Erro))+
+  geom_point()+
+  geom_smooth()+
+  theme_minimal()
+
+#Error analysis
+ggplot(dfpred, aes(Erro))+
+  geom_histogram(aes(y=..density..), colour="black", fill="blue", alpha = 0.6)+
+  geom_density(alpha=.2, fill="black")+
+  geom_vline(aes(xintercept=mean(Erro)),
+            color="red", linetype="dashed", size=1)+
+  theme_minimal()
+
+# normality test for error
+ad.test(dfpred$Erro) # normal if greater than 0.05
+shapiro.test(dfpred$Erro) #normal if greater than 0.05
+
+#Removing outliers
+dfpred = dfpred[-c(54,76,78),]
+
+# normality test for error
+ad.test(dfpred$Erro) # normal if greater than 0.05
+shapiro.test(dfpred$Erro) #normal if greater than 0.05
+
+summary(dfpred)
 
 ```
 
