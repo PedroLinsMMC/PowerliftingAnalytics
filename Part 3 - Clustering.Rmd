@@ -88,6 +88,7 @@ df3 = df2 %>%
   #filter(Sex != "Mx") %>%
   filter(Equipment == "Raw") %>%
   filter(Event == "SBD") %>%
+  filter(Dots > 400) %>%
   filter(Squat1Kg > 0) %>%
   filter(Squat2Kg > 0) %>%
   filter(Squat3Kg > 0) %>%
@@ -138,4 +139,116 @@ fviz_silhouette(km.res, palette = "jco", ggtheme = theme_classic()) #avaliar se 
 fviz_cluster(km.res, geom = "point", ellipse.type = "norm",palette = "jco", ggtheme = theme_minimal()) 
 
 km.res
+```
+######################3
+
+```{r}
+df3 = df2 %>%
+  filter(Year > 2013) %>%
+  #filter(Sex != "Mx") %>%
+  filter(Equipment == "Raw") %>%
+  filter(Event == "SBD") %>%
+  filter(Dots > 400) %>%
+  filter(Squat1Kg > 0) %>%
+  filter(Squat2Kg > 0) %>%
+  filter(Squat3Kg > 0) %>%
+  filter(Bench1Kg > 0) %>%
+  filter(Bench2Kg > 0) %>%
+  filter(Bench3Kg > 0) %>%
+  filter(Deadlift1Kg > 0) %>%
+  filter(Deadlift2Kg > 0) %>%
+  filter(Deadlift3Kg > 0) 
+
+#too many NA's
+df3 = na.omit(df3)
+#remove 1 unique values
+df4 = df3[c(30,31,32)]
+#sapply(lapply(df3, unique), length)
+
+# df3$Sex <- as.factor(df3$Sex)
+# newdf3 <- one_hot(as.data.table(df3))
+
+```
+
+```{r}
+###########
+# K-means # 
+###########
+
+set.seed(123) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
+#final_df = slice_sample(df3, n = 2217, replace = TRUE) #usaremos uma amostra pois o banco de dados é muito grande
+
+# Elbow method
+fviz_nbclust(x = df4, FUNcluster = kmeans,method = "wss") + labs(subtitle = "Elbow method") #avaliar melhor número de clusters
+
+# Silhouette method
+fviz_nbclust(df4, kmeans, method = "silhouette")+
+  labs(subtitle = "Silhouette method") # outro método de avaliar número de clusters
+
+# Viz
+set.seed(111) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
+km.res <- eclust(df4, "kmeans", k = 2, nstart = 100, graph = FALSE) #rodar modelo
+
+# Validation
+fviz_silhouette(km.res, palette = "jco", ggtheme = theme_classic()) #avaliar se o k escolhido está bom
+
+#Visualizar clusterização
+fviz_cluster(km.res, geom = "point", ellipse.type = "norm",palette = "jco", ggtheme = theme_minimal()) 
+
+km.res
+```
+
+```{r}
+df3$cluster =km.res$cluster
+
+mean(df3$cluster) # almost the same amount of each
+
+ggplot(df3%>%count(Country)%>%arrange(desc(n))%>%slice(1:10), aes(x = reorder(Country, -n), y = n))+
+  geom_bar(stat='identity', fill = "blue", alpha = 0.7)
+
+# Specify data column
+means = aggregate(x= df3$cluster,   
+            
+         # Specify group indicator
+         by = list(df3$Country),      
+            
+         # Specify function (i.e. mean)
+         FUN = mean)
+df3$cluster = as.character(df3$cluster)
+
+ggplot(df3, aes(x = Dots, fill = cluster))+
+  geom_boxplot()
+
+ggplot(df3, aes(x = Dots, fill = cluster))+
+  geom_histogram()
+
+
+
+ggplot(df3%>%filter(Country=="USA"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="England"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Australia"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Canada"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Norway"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Finland"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Germany"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Russia"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Ireland"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="New Zealand"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+
+ggplot(df3%>%filter(Country=="Brazil"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+ggplot(df3%>%filter(Country=="Japan"), aes(cluster))+
+  geom_bar(aes(fill=Country))
+
+
 ```

@@ -322,8 +322,35 @@ write.csv(predictions,"CommonwealthPredictions.csv", row.names = TRUE)
 #########################
 
 dfpred = read_csv("CommonwealthPredictions.csv")
-dfpred$Erro = (1-(dfpred$Total/dfpred$Prediction))*100 #error in percentedge
+dfpred$Error = (1-(dfpred$Total/dfpred$Prediction))*100 #error in percentedge
+
+#Removing DSQ
+dfpred = dfpred[-c(54,58),]
+dfpred$Total = as.numeric(dfpred$Total)
+dfpred$Error = (1-(dfpred$Total/dfpred$Prediction))*100 #error in percentedge
 summary(dfpred)
+
+# normality test for error
+ad.test(dfpred$Error) # normal if greater than 0.05
+shapiro.test(dfpred$Error) #normal if greater than 0.05
+
+#Removing outliers
+dfpred = dfpred[-c(54,76,78),]
+
+# normality test for error
+ad.test(dfpred$Error) # normal if greater than 0.05
+shapiro.test(dfpred$Error) #normal if greater than 0.05
+
+summary(dfpred)
+
+
+#Error analysis
+ggplot(dfpred, aes(Error))+
+  geom_histogram(aes(y=..density..), colour="black", fill="blue", alpha = 0.6)+
+  geom_density(alpha=.2, fill="black")+
+  geom_vline(aes(xintercept=mean(Error)),
+            color="red", linetype="dashed", size=1)+
+  theme_minimal()
 
 #Visualizing results
 ggplot(dfpred, aes(x=Total, y=Prediction))+
@@ -331,31 +358,9 @@ ggplot(dfpred, aes(x=Total, y=Prediction))+
   geom_smooth()+
   theme_minimal()
 
-ggplot(dfpred, aes(x=Total, y=Erro))+
+ggplot(dfpred, aes(x=Total, y=Error))+
   geom_point()+
   geom_smooth()+
   theme_minimal()
-
-#Error analysis
-ggplot(dfpred, aes(Erro))+
-  geom_histogram(aes(y=..density..), colour="black", fill="blue", alpha = 0.6)+
-  geom_density(alpha=.2, fill="black")+
-  geom_vline(aes(xintercept=mean(Erro)),
-            color="red", linetype="dashed", size=1)+
-  theme_minimal()
-
-# normality test for error
-ad.test(dfpred$Erro) # normal if greater than 0.05
-shapiro.test(dfpred$Erro) #normal if greater than 0.05
-
-#Removing outliers
-dfpred = dfpred[-c(54,76,78),]
-
-# normality test for error
-ad.test(dfpred$Erro) # normal if greater than 0.05
-shapiro.test(dfpred$Erro) #normal if greater than 0.05
-
-summary(dfpred)
-
 ```
 
