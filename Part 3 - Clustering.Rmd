@@ -24,6 +24,7 @@ library(factoextra) #plot cluster
 library(cluster) #cluster
 library(dbscan)
 library(gridExtra)
+library(fpc)
 
 ```
 
@@ -40,55 +41,26 @@ df = read_csv(openpowerlifting)
 # Checking the data #
 #####################
 #understand the quirks of the data set and potential errors
-summary(df) #checking data
-head(df)
-#remove forth attempts since most of them are NA's
-df2 = df[-c(14,19,24)]
-head(df2)
-
-#remove places and competitions names
-df2 = df2[-c(31,33,36,37,38)]
-head(df2)
-
-#remove Name, AgeClass, BirthYearClass
-df2 = df2[-c(1,6,7,8,24)]
-head(df2)
+# summary(df) #checking data
+# head(df)
 
 # I did it because date was in DD/MM/YYYY format, to make it easier for analyse, I made it just YYYY. 
-df2$Year = c(format(df2$Date, "%Y"))
-df2$Year = as.numeric(df2$Year)
-df2 = df2[-27]
+df$Year = c(format(df$Date, "%Y"))
+df$Year = as.numeric(df$Year)
 
-#leave only the Dots coefficient
-df2 = df2[-c(21,22,23)]
-
-#remove WeightClass
-df2 = df2[-c(6)]
-#remove MeetCountry
-df2 = df2[-c(23)]
-
-str(df2)
-sapply(lapply(df2, unique), length)
-
-df2$sqd1 = (abs(df2$Squat2Kg) - abs(df2$Squat1Kg))/abs(df2$Squat2Kg)
-df2$sqd2 = (abs(df2$Squat3Kg) - abs(df2$Squat2Kg))/abs(df2$Squat3Kg)
-df2$bpd1 = (abs(df2$Bench2Kg) - abs(df2$Bench1Kg))/abs(df2$Bench2Kg)
-df2$bpd2 = (abs(df2$Bench3Kg) - abs(df2$Bench2Kg))/abs(df2$Bench3Kg)
-df2$dld1 = (abs(df2$Deadlift2Kg) - abs(df2$Deadlift1Kg))/abs(df2$Deadlift2Kg)
-df2$dld2 = (abs(df2$Deadlift3Kg) - abs(df2$Deadlift2Kg))/abs(df2$Deadlift3Kg)
-
-df2$sqtot = df2$Best3SquatKg/df2$TotalKg
-df2$bptot = df2$Best3BenchKg/df2$TotalKg
-df2$dltot = df2$Best3DeadliftKg/df2$TotalKg
+#adding the percentage of each lift from the total
+df$sq = df$Best3SquatKg/df$TotalKg
+df$bp = df$Best3BenchKg/df$TotalKg
+df$dl = df$Best3DeadliftKg/df$TotalKg
 ```
 
+
 ```{r}
-df3 = df2 %>%
-  filter(Year == 2019) %>%
-  #filter(Sex != "Mx") %>%
+df2 = df %>%
+  filter(Year > 2018) %>%
   filter(Equipment == "Raw") %>%
   filter(Event == "SBD") %>%
-  filter(Dots > 400) %>%
+  filter(ParentFederation == "IPF") %>%
   filter(Squat1Kg > 0) %>%
   filter(Squat2Kg > 0) %>%
   filter(Squat3Kg > 0) %>%
@@ -99,17 +71,16 @@ df3 = df2 %>%
   filter(Deadlift2Kg > 0) %>%
   filter(Deadlift3Kg > 0) 
 
-str(df3)
-summary(df3)
-
-#too many NA's
+df2=df2[c(28,33,43:45)]
+df2=na.omit(df2)
+#leave only the percentages from the total
+df3 = df2[c(3:5)]
+#remove NA's
 df3 = na.omit(df3)
-#remove 1 unique values
-df3 = df3[-c(2,3, 20,21,22, 23,6:18)]
-sapply(lapply(df3, unique), length)
-
-df3$Sex <- as.factor(df3$Sex)
-newdf3 <- one_hot(as.data.table(df3))
+#normilize data
+df3 = scale(df3)
+#from list to dataframe
+df3 = as.data.frame(df3)
 
 ```
 
@@ -118,79 +89,22 @@ newdf3 <- one_hot(as.data.table(df3))
 # K-means # 
 ###########
 
-set.seed(123) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
-final_df = slice_sample(newdf3, n = 1000, replace = TRUE) #usaremos uma amostra pois o banco de dados é muito grande
+#set.seed(123) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
+#df3 = slice_sample(df3, n = 2000, replace = TRUE) #usaremos uma amostra pois o banco de dados é muito grande
 
 # Elbow method
-fviz_nbclust(x = final_df, FUNcluster = kmeans,method = "wss") + labs(subtitle = "Elbow method") #avaliar melhor número de clusters
+#fviz_nbclust(x = df3, FUNcluster = kmeans,method = "wss") + labs(subtitle = "Elbow method") #avaliar melhor número de clusters
 
 # Silhouette method
-fviz_nbclust(final_df, kmeans, method = "silhouette")+
+fviz_nbclust(df3, kmeans, method = "silhouette")+
   labs(subtitle = "Silhouette method") # outro método de avaliar número de clusters
 
 # Viz
-set.seed(111) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
-km.res <- eclust(final_df, "kmeans", k = 2, nstart = 100, graph = FALSE) #rodar modelo
+#set.seed(112) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
+km.res <- eclust(df3, "kmeans", k = 3, nstart = 100, graph = FALSE) #rodar modelo
 
 # Validation
-fviz_silhouette(km.res, palette = "jco", ggtheme = theme_classic()) #avaliar se o k escolhido está bom
-
-#Visualizar clusterização
-fviz_cluster(km.res, geom = "point", ellipse.type = "norm",palette = "jco", ggtheme = theme_minimal()) 
-
-km.res
-```
-######################3
-
-```{r}
-df3 = df2 %>%
-  filter(Year > 2013) %>%
-  #filter(Sex != "Mx") %>%
-  filter(Equipment == "Raw") %>%
-  filter(Event == "SBD") %>%
-  filter(Dots > 400) %>%
-  filter(Squat1Kg > 0) %>%
-  filter(Squat2Kg > 0) %>%
-  filter(Squat3Kg > 0) %>%
-  filter(Bench1Kg > 0) %>%
-  filter(Bench2Kg > 0) %>%
-  filter(Bench3Kg > 0) %>%
-  filter(Deadlift1Kg > 0) %>%
-  filter(Deadlift2Kg > 0) %>%
-  filter(Deadlift3Kg > 0) 
-
-#too many NA's
-df3 = na.omit(df3)
-#remove 1 unique values
-df4 = df3[c(30,31,32)]
-#sapply(lapply(df3, unique), length)
-
-# df3$Sex <- as.factor(df3$Sex)
-# newdf3 <- one_hot(as.data.table(df3))
-
-```
-
-```{r}
-###########
-# K-means # 
-###########
-
-set.seed(123) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
-#final_df = slice_sample(df3, n = 2217, replace = TRUE) #usaremos uma amostra pois o banco de dados é muito grande
-
-# Elbow method
-fviz_nbclust(x = df4, FUNcluster = kmeans,method = "wss") + labs(subtitle = "Elbow method") #avaliar melhor número de clusters
-
-# Silhouette method
-fviz_nbclust(df4, kmeans, method = "silhouette")+
-  labs(subtitle = "Silhouette method") # outro método de avaliar número de clusters
-
-# Viz
-set.seed(111) #para resultados ser replicaveis já que o kmeans inicia escolhendo pontos aleatórios
-km.res <- eclust(df4, "kmeans", k = 2, nstart = 100, graph = FALSE) #rodar modelo
-
-# Validation
-fviz_silhouette(km.res, palette = "jco", ggtheme = theme_classic()) #avaliar se o k escolhido está bom
+#fviz_silhouette(km.res, palette = "jco", ggtheme = theme_classic()) #avaliar se o k escolhido está bom
 
 #Visualizar clusterização
 fviz_cluster(km.res, geom = "point", ellipse.type = "norm",palette = "jco", ggtheme = theme_minimal()) 
@@ -198,57 +112,104 @@ fviz_cluster(km.res, geom = "point", ellipse.type = "norm",palette = "jco", ggth
 km.res
 ```
 
+
 ```{r}
-df3$cluster =km.res$cluster
+df2$cluster =km.res$cluster
 
-mean(df3$cluster) # almost the same amount of each
-
-ggplot(df3%>%count(Country)%>%arrange(desc(n))%>%slice(1:10), aes(x = reorder(Country, -n), y = n))+
+ggplot(df2%>%count(Country)%>%arrange(desc(n))%>%slice(1:10), aes(x = reorder(Country, -n), y = n))+
   geom_bar(stat='identity', fill = "blue", alpha = 0.7)
 
 # Specify data column
-means = aggregate(x= df3$cluster,   
+means = aggregate(x= df2$cluster,   
             
          # Specify group indicator
-         by = list(df3$Country),      
+         by = list(df2$Country),      
             
          # Specify function (i.e. mean)
          FUN = mean)
-df3$cluster = as.character(df3$cluster)
+df2$cluster = as.character(df2$cluster)
 
-ggplot(df3, aes(x = Dots, fill = cluster))+
-  geom_boxplot()
+ggplot(df2, aes(x = Dots, fill = cluster))+
+  labs(title = 'Dots distribution per cluster')+
+  geom_boxplot()+
+  theme_minimal()
 
-ggplot(df3, aes(x = Dots, fill = cluster))+
-  geom_histogram()
-
-
-
-ggplot(df3%>%filter(Country=="USA"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="England"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Australia"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Canada"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Norway"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Finland"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Germany"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Russia"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Ireland"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="New Zealand"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-
-ggplot(df3%>%filter(Country=="Brazil"), aes(cluster))+
-  geom_bar(aes(fill=Country))
-ggplot(df3%>%filter(Country=="Japan"), aes(cluster))+
-  geom_bar(aes(fill=Country))
+ggplot(df2, aes(x = Dots, fill = cluster))+
+  labs(title = 'Number of athletes on each cluster')+
+  geom_histogram()+
+  theme_minimal()
+```
 
 
+
+```{r}
+library(mltools)
+library(data.table)
+
+df2$cluster <- as.factor(df2$cluster)
+newdata <- one_hot(as.data.table(df2))
+
+# Specify data column
+dftemp1 = aggregate(x= newdata$cluster_1,   
+            
+         # Specify group indicator
+         by = list(df2$Country),      
+            
+         # Specify function (i.e. mean)
+         FUN = mean)
+
+dftemp2 = aggregate(x= newdata$cluster_2,   
+            
+         # Specify group indicator
+         by = list(df2$Country),      
+            
+         # Specify function (i.e. mean)
+         FUN = mean)
+dftemp3 = aggregate(x= newdata$cluster_3,   
+            
+         # Specify group indicator
+         by = list(df2$Country),      
+            
+         # Specify function (i.e. mean)
+         FUN = mean)
+
+dftemp = data.frame(dftemp1,dftemp2,dftemp3)
+dftemp = dftemp[-c(3,5)]
+
+
+cluster1 = dftemp %>%
+  filter(x>x.1) %>%
+  filter(x>x.2)
+cluster1$cluster = c(1)
+
+cluster2 = dftemp %>%
+  filter(x.1>x) %>%
+  filter(x.1>x.2)
+cluster2$cluster = c(2)
+
+cluster3 = dftemp %>%
+  filter(x.2>x) %>%
+  filter(x.2>x.1)
+cluster3$cluster = c(3)
+
+df_final = rbind(cluster1, cluster2, cluster3)
+write.csv(df_final,"Countriesbycluster.csv", row.names = TRUE)
+```
+
+```{r}
+library(magrittr)
+library(ggmap)
+library(stringr)
+
+map.world <- map_data("world")
+
+# LEFT JOIN
+map.world_joined <- left_join(map.world, df_final, by = c('region' = 'Group.1'))
+
+df_final$cluster = as.character(df_final$cluster)
+
+ggplot() +
+  geom_polygon(data = map.world_joined, aes(x = long, y = lat, group = group, fill = cluster)) +
+  labs(title = 'Countries by cluster') +
+  theme_minimal()
 ```
